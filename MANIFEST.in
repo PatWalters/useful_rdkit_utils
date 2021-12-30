@@ -1,0 +1,7 @@
+include LICENSE
+include MANIFEST.in
+include CODE_OF_CONDUCT.md
+include versioneer.py
+
+graft useful_rdkit_utils
+global-exclude *.py[cod] __pycache__ *.so
