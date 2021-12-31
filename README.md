@@ -6,6 +6,11 @@ useful_rdkit_utils
 
 Some useful RDKit functions
 
+### Download
+```bash
+git clone git@github.com:PatWalters/useful_rdkit_utils.git
+```
+
 ### Installation
 ```bash
 pip install git+https://github.com/PatWalters/useful_rdkit_utils
