@@ -16,6 +16,9 @@ git clone git@github.com:PatWalters/useful_rdkit_utils.git
 pip install git+https://github.com/PatWalters/useful_rdkit_utils
 ```
 
+### Demos
+The notebooks directory contains a Jupyter notebook showing how to use some of the functions in this collection.
+
 ### Copyright
 
 Copyright (c) 2021, Pat Walters
