@@ -13,7 +13,7 @@ git clone git@github.com:PatWalters/useful_rdkit_utils.git
 
 ### Installation
 ```bash
-pip install git+https://github.com/PatWalters/useful_rdkit_utils
+pip install useful_rdkit_utils
 ```
 
 ### Demos
