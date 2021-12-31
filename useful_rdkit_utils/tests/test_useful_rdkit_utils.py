@@ -77,26 +77,26 @@ def test_mol2numpy_fp():
 def test_rdkit_props_calc_mol():
     rdkit_props = uru.RDKitProperties()
     mol = Chem.MolFromSmiles("c1ccccc1")
-    props = rdkit_props.calc_mol(mol)
+    _ = rdkit_props.calc_mol(mol)
     assert True
 
 
 def test_rdkit_props_calc_smiles():
     rdkit_props = uru.RDKitProperties()
-    props = rdkit_props.calc_smiles("c1ccccc1")
+    _ = rdkit_props.calc_smiles("c1ccccc1")
     assert True
 
 
 def test_r05_calc_mol():
     r05_calc = uru.Ro5Calculator()
     mol = Chem.MolFromSmiles("c1ccccc1")
-    r5 = r05_calc.calc_mol(mol)
+    _ = r05_calc.calc_mol(mol)
     assert True
 
 
 def test_r05_calc_smiles():
     r05_calc = uru.Ro5Calculator()
-    r5 = r05_calc.calc_smiles("c1ccccc1")
+    _ = r05_calc.calc_smiles("c1ccccc1")
     assert True
 
 
@@ -113,8 +113,8 @@ Cn1c(=O)c2[nH]cnc2n(C)c1=O.NCC(=O)[O-].[Na+] 674529
 C[N+](C)(C)CCO.Cn1c(=O)c2[n-]cnc2n(C)c1=O 674385"""
     ifs = StringIO(buff)
     df = pd.read_csv(ifs, sep=" ", names=["SMILES", "Name"])
-    df['mol'] = df.SMILES.apply(Chem.MolFromSmiles)
-    df['fp'] = df.mol.apply(uru.mol2morgan_fp)
+    df["mol"] = df.SMILES.apply(Chem.MolFromSmiles)
+    df["fp"] = df.mol.apply(uru.mol2morgan_fp)
     clusters = uru.taylor_butina_clustering(df.fp.values)
     assert str(clusters) == "[6 0 0 0 5 4 3 1 1 2]"
 

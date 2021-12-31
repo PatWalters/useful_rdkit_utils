@@ -1,8 +1,7 @@
 import itertools
-from operator import itemgetter
-
 import numpy as np
 import py3Dmol
+from operator import itemgetter
 from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Chem import rdDepictor
