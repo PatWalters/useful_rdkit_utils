@@ -7,6 +7,5 @@ extraction:
 path_classifiers:
   library:
     - versioneer.py  # Set Versioneer.py to an external "library" (3rd party code)
-    - devtools/*
   generated:
     - useful_rdkit_utils/_version.py
