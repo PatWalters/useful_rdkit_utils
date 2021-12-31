@@ -4,7 +4,7 @@ useful_rdkit_utils
 [![GitHub Actions Build Status](https://github.com/PatWalters/useful_rdkit_utils/workflows/CI/badge.svg)](https://github.com/PatWalters/useful_rdkit_utils/actions?query=workflow%3ACI)
 
 
-Some useful RDKit functions
+A collection of useful RDKit functions
 
 ### Download
 ```bash
