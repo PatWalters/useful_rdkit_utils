@@ -1,7 +1,9 @@
+import sys
 import itertools
 import numpy as np
 import py3Dmol
 from operator import itemgetter
+import pandas as pd
 from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Chem import rdDepictor
@@ -10,6 +12,7 @@ from rdkit.Chem.Descriptors3D import NPR1, NPR2
 from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.ML.Cluster import Butina
+import pystow
 
 
 # ----------- Molecular geometry
@@ -312,3 +315,6 @@ def MolTo3DView(mol, size=(300, 300), style="stick", surface=False, opacity=0.5)
         viewer.addSurface(py3Dmol.SAS, {'opacity': opacity})
     viewer.zoomTo()
     return viewer
+
+
+

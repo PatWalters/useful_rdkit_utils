@@ -2,6 +2,7 @@
 
 # Add imports here
 from .useful_rdkit_utils import *
+from .reos import REOS
 
 # Handle versioneer
 from ._version import get_versions
