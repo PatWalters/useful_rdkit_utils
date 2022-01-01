@@ -213,6 +213,12 @@ def rd_make_structures_pretty():
 
 # ----------- Atom tagging
 def label_atoms(mol, labels):
+    """
+    Label atoms when depicting a molecule
+    @param mol: input molecule
+    @param labels: labels, one for each atom
+    @return: molecule with labels
+    """
     [atm.SetProp('atomNote', "") for atm in mol.GetAtoms()]
     for atm in mol.GetAtoms():
         idx = atm.GetIdx()
@@ -221,6 +227,13 @@ def label_atoms(mol, labels):
 
 
 def tag_atoms(mol, atoms_to_tag, tag="x"):
+    """
+    Tag atoms with a specified string
+    @param mol: input molecule
+    @param atoms_to_tag: indices of atoms to tag
+    @param tag: string to use for the tags
+    @return: molecule with atoms tagged
+    """
     [atm.SetProp('atomNote', "") for atm in mol.GetAtoms()]
     [mol.GetAtomWithIdx(idx).SetProp('atomNote', tag) for idx in atoms_to_tag]
     return mol
@@ -228,11 +241,19 @@ def tag_atoms(mol, atoms_to_tag, tag="x"):
 
 # ----------- Logging
 def rd_shut_the_hell_up():
+    """
+    Make the RDKit be a bit more quiet
+    @return: None
+    """
     lg = RDLogger.logger()
     lg.setLevel(RDLogger.CRITICAL)
 
 
 def demo_block_logs():
+    """
+    An example of another way to turn off RDKit logging
+    @return: None
+    """
     from rdkit.rdBase import BlockLogs
     block = BlockLogs()
     # do stuff
