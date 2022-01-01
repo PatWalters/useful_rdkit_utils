@@ -22,7 +22,7 @@ pip install git+https://github.com/PatWalters/useful_rdkit_utils
 ```
 
 ### Demos
-The notebooks directory contains a Jupyter notebook showing how to use some of the functions in this collection.
+The notebooks directory contains Jupyter notebooks that show how to use some of the functions in this collection.
 
 ### Contributing
 I'm very open to PRs with corrections and/or contributions. 
