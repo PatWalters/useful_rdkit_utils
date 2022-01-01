@@ -35,7 +35,7 @@ Copyright (c) 2021, Pat Walters
 
 The code in this package is licensed under the MIT License.
 
-#### Acknowledgements
+### Acknowledgements
  
 Project based on the 
 [Computational Molecular Science Python Cookiecutter](https://github.com/molssi/cookiecutter-cms) version 1.6.
