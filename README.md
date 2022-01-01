@@ -31,6 +31,9 @@ I'm very open to PRs with corrections and/or contributions.
 
 Copyright (c) 2021, Pat Walters
 
+### License
+
+The code in this package is licensed under the MIT License.
 
 #### Acknowledgements
  
