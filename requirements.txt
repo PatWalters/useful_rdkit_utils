@@ -1,0 +1,8 @@
+numpy
+py3DMol
+rdkit-pypi
+pytest
+jupyter
+Pillow
+pandas
+pystow
