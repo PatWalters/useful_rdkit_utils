@@ -7,10 +7,9 @@ from rdkit import Chem
 
 
 class REOS:
-    """
-    REOS - Rapid Elimination Of Swill
-    Walters, Ajay, Murcko, "Recognizing molecules with druglike properties"
-    Curr. Opin. Chem. Bio., 3 (1999), 384-387
+    """REOS - Rapid Elimination Of Swill\n
+    Walters, Ajay, Murcko, "Recognizing molecules with druglike properties"\n
+    Curr. Opin. Chem. Bio., 3 (1999), 384-387\n
     https://doi.org/10.1016/S1367-5931(99)80058-1
     """
 
@@ -23,9 +22,9 @@ class REOS:
         self.read_rules(self.rule_path, active_rules)
 
     def parse_smarts(self):
-        """
-        Parse the SMARTS strings in the rules file to molecule objects and check for validity
-        @return: True if all SMARTS are parsed, False otherwise
+        """Parse the SMARTS strings in the rules file to molecule objects and check for validity
+
+        :return: True if all SMARTS are parsed, False otherwise
         """
         smarts_mol_list = []
         smarts_are_ok = True
@@ -39,11 +38,12 @@ class REOS:
         return smarts_are_ok
 
     def read_rules(self, rules_file, active_rules=None):
-        """
-        Read a rules file
-        @param rules_file: name of the rules file
-        @param active_rules: list of active rule sets, all rule sets are used if this in None
-        @return: None
+        """Read a rules file
+
+        :param rules_file: name of the rules file
+        :param active_rules: list of active rule sets, all rule sets are used if
+            this is None
+        :return: None
         """
         self.rule_path = Path(rules_file)
         self.rule_df = pd.read_csv(self.rule_path)
@@ -58,40 +58,40 @@ class REOS:
             self.active_rule_df = self.rule_df
 
     def set_active_rule_sets(self, active_rules=None):
-        """
-        Set the active rule set(s)
-        @param active_rules: list of active rule sets
-        @return: None
+        """Set the active rule set(s)
+
+        :param active_rules: list of active rule sets
+        :return: None
         """
         assert active_rules
         self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules")
 
     def get_available_rule_sets(self):
-        """
-        Get the available rule sets in rule_df
-        @return: a list of available rule sets
+        """Get the available rule sets in rule_df
+
+        :return: a list of available rule sets
         """
         return self.rule_df.rule_set_name.unique()
 
     def get_active_rule_sets(self):
-        """
-        Get the active rule sets in active_rule_df
-        @return: a list of active rule sets
+        """Get the active rule sets in active_rule_df
+
+        :return: a list of active rule sets
         """
         return self.active_rule_df.rule_set_name.unique()
 
     def get_rule_file_location(self):
-        """
-        Get the path to the rules file as a Path
-        @return: Path for rules file
+        """Get the path to the rules file as a Path
+
+        :return: Path for rules file
         """
         return self.rule_path
 
     def process_mol(self, mol):
-        """
-        Match a molecule against the active rule set
-        @param mol: input RDKit molecule
-        @return: the first rule matched or "ok" if no rules are matched
+        """Match a molecule against the active rule set
+
+        :param mol: input RDKit molecule
+        :return: the first rule matched or "ok" if no rules are matched
         """
         cols = ['description', 'rule_set_name', 'pat', 'max']
         for desc, rule_set_name, pat, max_val in self.active_rule_df[cols].values:
@@ -100,10 +100,10 @@ class REOS:
         return "ok", "ok"
 
     def process_smiles(self, smiles):
-        """
-        Convert SMILES to an RDKit molecule and call process_mol
-        @param smiles: input SMILES
-        @return: process_mol result or None if the SMILES can't be parsed
+        """Convert SMILES to an RDKit molecule and call process_mol
+
+        :param smiles: input SMILES
+        :return: process_mol result or None if the SMILES can't be parsed
         """
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:

@@ -15,8 +15,8 @@ from rdkit.ML.Cluster import Butina
 
 # ----------- Molecular geometry
 def get_center(mol):
-    """
-    Get the geometric center of an RDKit molecule
+    """Get the geometric center of an RDKit molecule
+
     :param mol: RDKit molecule
     :return: center as a numpy array
     """
@@ -25,8 +25,8 @@ def get_center(mol):
 
 
 def get_shape_moments(mol):
-    """
-    Calculate principal moments of inertia as define in https://pubs.acs.org/doi/10.1021/ci025599w
+    """ Calculate principal moments of inertia as defined in https://pubs.acs.org/doi/10.1021/ci025599w
+
     :param mol: RDKit molecule
     :return: first 2 moments as a tuple
     """
@@ -38,8 +38,8 @@ def get_shape_moments(mol):
 
 # ----------- Structure cleanup
 def count_fragments(mol):
-    """
-    Count the number of fragments in a molecule
+    """Count the number of fragments in a molecule
+
     :param mol: RDKit molecule
     :return: number of fragments
     """
@@ -47,8 +47,8 @@ def count_fragments(mol):
 
 
 def get_largest_fragment(mol):
-    """
-    Return the fragment with the largest number of atoms
+    """Return the fragment with the largest number of atoms
+
     :param mol: RDKit molecule
     :return: RDKit molecule with the largest number of atoms
     """
@@ -60,8 +60,8 @@ def get_largest_fragment(mol):
 
 # ----------- Descriptors and fingerprints
 def mol2morgan_fp(mol, radius=2, nBits=2048):
-    """
-    Convert an RDKit molecule to a Morgan fingerprint
+    """Convert an RDKit molecule to a Morgan fingerprint
+
     :param mol: RDKit molecule
     :param radius: fingerprint radius
     :param nBits: number of fingerprint bits
@@ -72,8 +72,8 @@ def mol2morgan_fp(mol, radius=2, nBits=2048):
 
 
 def mol2numpy_fp(mol, radius=2, nBits=2048):
-    """
-    Convert an RDKit molecule to a numpy array with Morgan fingerprint bits
+    """Convert an RDKit molecule to a numpy array with Morgan fingerprint bits
+
     :param mol: RDKit molecule
     :param radius: fingerprint radius
     :param nBits: number of fingerprint bits
@@ -93,16 +93,16 @@ class RDKitProperties:
         self.property_getter = rdMolDescriptors.Properties(self.property_names)
 
     def calc_mol(self, mol):
-        """
-        Calculate properties for a RDKit molecule
+        """Calculate properties for a RDKit molecule
+
         :param mol: RDKit molecule
         :return: a numpy array with properties
         """
         return np.array(self.property_getter.ComputeProperties(mol))
 
     def calc_smiles(self, smi):
-        """
-        Calculate properties for a SMILES string
+        """Calculate properties for a SMILES string
+
         :param smi: SMILES string
         :return: a numpy array with properties
         """
@@ -123,16 +123,16 @@ class Ro5Calculator:
         self.functions = [MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA]
 
     def calc_mol(self, mol):
-        """
-        Calculate properties for a RDKit molecule
+        """Calculate properties for a RDKit molecule
+
         :param mol: RDKit molecule
         :return: a numpy array with properties
         """
         return np.array([x(mol) for x in self.functions])
 
     def calc_smiles(self, smi):
-        """
-        Calculate properties for a SMILES string
+        """Calculate properties for a SMILES string
+
         :param smi: SMILES string
         :return: a numpy array with properties
         """
@@ -145,8 +145,8 @@ class Ro5Calculator:
 
 # ----------- Clustering
 def taylor_butina_clustering(fp_list, cutoff=0.35):
-    """
-    Cluster a set of fingerprints using the RDKit Taylor-Buting implementation
+    """Cluster a set of fingerprints using the RDKit Taylor-Buting implementation
+
     :param fp_list: a list of fingerprints
     :param cutoff: similarity cutoff
     :return: a list of cluster ids
@@ -166,8 +166,8 @@ def taylor_butina_clustering(fp_list, cutoff=0.35):
 
 # ----------- Jupyter
 def rd_setup_jupyter():
-    """
-    Set up rendering the way I want it
+    """Set up rendering the way I want it
+
     :return: None
     """
     IPythonConsole.ipython_useSVG = True
@@ -176,24 +176,24 @@ def rd_setup_jupyter():
 
 
 def rd_enable_svg():
-    """
-    Enable SVG rendering in Jupyter notebooks
+    """Enable SVG rendering in Jupyter notebooks
+
     :return: None
     """
     IPythonConsole.ipython_useSVG = True
 
 
 def rd_enable_png():
-    """
-    Enable PNG rendering in Jupyter notebooks
+    """Enable PNG rendering in Jupyter notebooks
+
     :return: None
     """
     IPythonConsole.ipython_useSVG = False
 
 
 def rd_set_image_size(x, y):
-    """
-    Set image size for structure rendering
+    """Set image size for structure rendering
+
     :param x: X dimension
     :param y: Y dimension
     :return: None
@@ -202,8 +202,8 @@ def rd_set_image_size(x, y):
 
 
 def rd_make_structures_pretty():
-    """
-    Enable CoordGen rendering
+    """Enable CoordGen rendering
+
     :return: None
     """
     rdDepictor.SetPreferCoordGen(True)
@@ -211,11 +211,11 @@ def rd_make_structures_pretty():
 
 # ----------- Atom tagging
 def label_atoms(mol, labels):
-    """
-    Label atoms when depicting a molecule
-    @param mol: input molecule
-    @param labels: labels, one for each atom
-    @return: molecule with labels
+    """Label atoms when depicting a molecule
+
+    :param mol: input molecule
+    :param labels: labels, one for each atom
+    :return: molecule with labels
     """
     [atm.SetProp('atomNote', "") for atm in mol.GetAtoms()]
     for atm in mol.GetAtoms():
@@ -225,12 +225,12 @@ def label_atoms(mol, labels):
 
 
 def tag_atoms(mol, atoms_to_tag, tag="x"):
-    """
-    Tag atoms with a specified string
-    @param mol: input molecule
-    @param atoms_to_tag: indices of atoms to tag
-    @param tag: string to use for the tags
-    @return: molecule with atoms tagged
+    """Tag atoms with a specified string
+
+    :param mol: input molecule
+    :param atoms_to_tag: indices of atoms to tag
+    :param tag: string to use for the tags
+    :return: molecule with atoms tagged
     """
     [atm.SetProp('atomNote', "") for atm in mol.GetAtoms()]
     [mol.GetAtomWithIdx(idx).SetProp('atomNote', tag) for idx in atoms_to_tag]
@@ -239,8 +239,8 @@ def tag_atoms(mol, atoms_to_tag, tag="x"):
 
 # ----------- Logging
 def rd_shut_the_hell_up():
-    """
-    Make the RDKit be a bit more quiet
+    """Make the RDKit be a bit more quiet
+
     @return: None
     """
     lg = RDLogger.logger()
@@ -248,8 +248,8 @@ def rd_shut_the_hell_up():
 
 
 def demo_block_logs():
-    """
-    An example of another way to turn off RDKit logging
+    """An example of another way to turn off RDKit logging
+
     @return: None
     """
     from rdkit.rdBase import BlockLogs
@@ -260,8 +260,8 @@ def demo_block_logs():
 
 # ----------- Ring stats
 def get_spiro_atoms(mol):
-    """
-    Get atoms that are part of a spiro fusion
+    """Get atoms that are part of a spiro fusion
+
     :param mol: input RDKit molecule
     :return: a list of atom numbers for atoms that are the centers of spiro fusions
     """
@@ -276,8 +276,8 @@ def get_spiro_atoms(mol):
 
 
 def max_ring_size(mol):
-    """
-    Get the size of the largest ring in a molecule
+    """Get the size of the largest ring in a molecule
+
     :param mol: input_molecule
     :return: size of the largest ring or 0 for an acyclic molecule
     """
@@ -291,8 +291,8 @@ def max_ring_size(mol):
 
 # ----------- 3D related stuff
 def gen_3d(mol):
-    """
-    Generate a 3D structure for a RDKit molecule
+    """Generate a 3D structure for a RDKit molecule
+
     :param mol: input molecule
     :return: molecule with 3D coordinates
     """
@@ -313,17 +313,13 @@ def gen_3d(mol):
 def MolTo3DView(mol, size=(300, 300), style="stick", surface=False, opacity=0.5):
     """Draw molecule in 3D
 
-    Args:
-    ----
-        mol: rdMol, molecule to show
-        size: tuple(int, int), canvas size
-        style: str, type of drawing molecule
-               style can be 'line', 'stick', 'sphere', 'carton'
-        surface, bool, display SAS
-        opacity, float, opacity of surface, range 0.0-1.0
-    Return:
-    ----
-        viewer: py3Dmol.view, a class for constructing embedded 3Dmol.js views in ipython notebooks.
+    :mol: rdMol, molecule to show
+    :size: tuple(int, int), canvas size
+    :style: str, type of drawing molecule,
+        style can be 'line', 'stick', 'sphere', 'carton'
+    :surface: bool, display SAS
+    :opacity: float, opacity of surface, range 0.0-1.0
+    :return: viewer: py3Dmol.view, a class for constructing embedded 3Dmol.js views in ipython notebooks.
     """
     assert style in ('line', 'stick', 'sphere', 'carton')
     mblock = Chem.MolToMolBlock(mol)
