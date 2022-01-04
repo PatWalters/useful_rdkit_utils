@@ -20,6 +20,10 @@ pip install useful_rdkit_utils
 ```bash
 pip install git+https://github.com/PatWalters/useful_rdkit_utils
 ```
+### Documentation
+```angular2html
+https://useful-rdkit-utils.rtfd.io
+```
 
 ### Demos
 The notebooks directory contains Jupyter notebooks that show how to use some of the functions in this collection.
