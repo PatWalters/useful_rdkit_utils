@@ -1,16 +1,20 @@
+import sys
 import itertools
 from operator import itemgetter
+from io import StringIO
 
 import numpy as np
+import pandas as pd
 import py3Dmol
 from rdkit import Chem, DataStructs, RDLogger
-from rdkit.Chem import AllChem, rdMolDescriptors
+from rdkit.Chem import AllChem, rdMolDescriptors, Descriptors
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
 from rdkit.Chem.Descriptors3D import NPR1, NPR2
 from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.ML.Cluster import Butina
+import logging
 
 
 # ----------- Molecular geometry
@@ -36,7 +40,21 @@ def get_shape_moments(mol):
     return npr1, npr2
 
 
-# ----------- Structure cleanup
+# ----------- Structure reading and cleanup
+def smi2mol_with_errors(smi):
+    """ Parse SMILES and return any associated errors or warnings
+
+    :param smi: input SMILES
+    :return: tuple of RDKit molecule, warning or error
+    """
+    sio = sys.stderr = StringIO()
+    mol = Chem.MolFromSmiles(smi)
+    err = sio.getvalue()
+    sio = sys.stderr = StringIO()
+    sys.stderr = sys.__stderr__
+    return mol, err
+
+
 def count_fragments(mol):
     """Count the number of fragments in a molecule
 
@@ -85,6 +103,53 @@ def mol2numpy_fp(mol, radius=2, nBits=2048):
     return arr
 
 
+# Code borrowed from Brian Kelley's Descriptastorus
+# https://github.com/bp-kelley/descriptastorus
+FUNCS = {name: func for name, func in Descriptors.descList}
+
+
+def apply_func(name, mol):
+    """Apply an RDKit descriptor calculation to a moleucle
+
+    :param name: descriptor name
+    :param mol: RDKit molecule
+    :return:
+    """
+    try:
+        return FUNCS[name](mol)
+    except:
+        logging.exception("function application failed (%s->%s)", name, Chem.MolToSmiles(m))
+        return None
+
+
+class RDKitDescriptors:
+    """ Calculate RDKit descriptors"""
+
+    def __init__(self):
+        self.desc_names = [desc_name for desc_name, _ in sorted(Descriptors.descList)]
+
+    def calc_mol(self, mol):
+        """Calculate descriptors for an RDKit molecule
+
+        :param mol: RDKit molecule
+        :return: a numpy array with descriptors
+        """
+        res = [apply_func(name, mol) for name in self.desc_names]
+        return np.array(res, dtype=float)
+
+    def calc_smiles(self, smiles):
+        """Calculate descriptors for a SMILES string
+
+        :param smiles: SMILES string
+        :return: a numpy array with properties
+        """
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            return self.calc_mol(mol)
+        else:
+            return None
+
+
 class RDKitProperties:
     """ Calculate RDKit properties """
 
@@ -93,7 +158,7 @@ class RDKitProperties:
         self.property_getter = rdMolDescriptors.Properties(self.property_names)
 
     def calc_mol(self, mol):
-        """Calculate properties for a RDKit molecule
+        """Calculate properties for an RDKit molecule
 
         :param mol: RDKit molecule
         :return: a numpy array with properties
@@ -110,7 +175,7 @@ class RDKitProperties:
         if mol:
             return np.array(self.calc_mol(mol))
         else:
-            return np.array([None] * len(self.property_names))
+            return None
 
 
 class Ro5Calculator:
@@ -140,7 +205,7 @@ class Ro5Calculator:
         if mol:
             return self.calc_mol(mol)
         else:
-            return np.array([None] * len(self.functions))
+            return None
 
 
 # ----------- Clustering
@@ -330,6 +395,3 @@ def MolTo3DView(mol, size=(300, 300), style="stick", surface=False, opacity=0.5)
         viewer.addSurface(py3Dmol.SAS, {'opacity': opacity})
     viewer.zoomTo()
     return viewer
-
-
-

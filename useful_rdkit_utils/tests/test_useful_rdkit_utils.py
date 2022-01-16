@@ -87,6 +87,15 @@ def test_rdkit_props_calc_smiles():
     assert True
 
 
+def test_rdkit_descriptors():
+    rdkit_desc = uru.RDKitDescriptors()
+    smi = "CCCCCC"
+    desc_from_smiles = rdkit_desc.calc_smiles(smi)
+    mol = Chem.MolFromSmiles(smi)
+    desc_from_mol = rdkit_desc.calc_mol(mol)
+    assert len(desc_from_smiles == desc_from_mol) == len(rdkit_desc.desc_names)
+
+
 def test_r05_calc_mol():
     r05_calc = uru.Ro5Calculator()
     mol = Chem.MolFromSmiles("c1ccccc1")

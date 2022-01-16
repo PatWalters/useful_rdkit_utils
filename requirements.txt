@@ -6,6 +6,7 @@ jupyter
 Pillow
 pandas
 pystow
+sphinx
 sphinx-autodoc-typehints
 sphinx-click
 sphinx-automodapi
