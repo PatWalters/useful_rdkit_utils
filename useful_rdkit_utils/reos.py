@@ -45,10 +45,12 @@ class REOS:
             this is None
         :return: None
         """
-        self.rule_path = Path(rules_file)
-        self.rule_df = pd.read_csv(self.rule_path)
         if self.parse_smarts():
             self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules")
+            if len(self.active_rule_df) == 0:
+                available_rules = sorted(list(self.rule_df["rule_set_name"].unique()))
+                raise ValueError(f"Supplied rules: {active_rules} not available. Please select from {available_rules}")
+
         else:
             print("Error reading rules, please fix the SMARTS errors reported above", file=sys.stderr)
             sys.exit(1)
