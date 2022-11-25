@@ -11,3 +11,4 @@ sphinx-autodoc-typehints
 sphinx-click
 sphinx-automodapi
 sphinx-rtd-theme
+tqdm

@@ -5,15 +5,21 @@ from rdkit import Chem
 import pandas as pd
 from tqdm.auto import tqdm
 from useful_rdkit_utils import RingSystemFinder
+import pystow
 
 
 class RingSystemLookup:
-    def __init__(self, ring_system_csv="chembl_ring_systems.csv"):
+    def __init__(self, ring_system_csv=None):
         """
         Initialize the lookup table
         :param ring_system_csv: csv file with ring smiles and frequency
         """
-        ring_df = pd.read_csv(ring_system_csv)
+        if ring_system_csv is None:
+            url = 'https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/chembl_ring_systems.csv'
+            self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
+        else:
+            self.rule_path = ring_system_csv
+        ring_df = pd.read_csv(self.rule_path)
         self.ring_dict = dict(ring_df[["ring_system", "count"]].values)
 
     def process_mol(self, mol):

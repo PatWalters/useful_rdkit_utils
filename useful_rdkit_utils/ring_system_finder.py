@@ -126,4 +126,5 @@ def create_ring_dictionary(input_smiles, output_csv):
 
 
 if __name__ == "__main__":
+    url = 
     create_ring_dictionary(sys.argv[1], sys.argv[2])
