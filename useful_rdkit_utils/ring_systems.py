@@ -7,6 +7,8 @@ import pystow
 
 
 class RingSystemFinder:
+    """A class to identify ring systems """
+
     def __init__(self):
         """Initialize susbstructure search objects to identify key functionality
         """
@@ -126,6 +128,7 @@ def create_ring_dictionary(input_smiles, output_csv):
 
 
 class RingSystemLookup:
+    """Lookup ring systems from a dictionary of rings and frequencies"""
     def __init__(self, ring_system_csv=None):
         """
         Initialize the lookup table

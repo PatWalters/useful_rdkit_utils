@@ -4,8 +4,7 @@
 from .useful_rdkit_utils import *
 from .reos import REOS
 from .pandas_utils import *
-from .ring_system_finder import *
-from .ring_system_lookup import *
+from .ring_systems import *
 
 # Handle versioneer
 from ._version import get_versions

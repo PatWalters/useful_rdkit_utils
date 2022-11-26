@@ -6,3 +6,8 @@ Usage
     :members:
 .. automodule:: useful_rdkit_utils.pandas_utils
     :members:
+.. automodule:: useful_rdkit_utils.ring_systems
+    :members:
+
+
+   
