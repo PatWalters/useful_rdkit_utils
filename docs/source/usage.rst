@@ -8,6 +8,8 @@ Usage
     :members:
 .. automodule:: useful_rdkit_utils.ring_systems
     :members:
+.. automodule:: useful_rdkit_utils.seaborn_utils
+    :members:
 
 
    

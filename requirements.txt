@@ -12,3 +12,4 @@ sphinx-click
 sphinx-automodapi
 sphinx-rtd-theme
 tqdm
+seaborn

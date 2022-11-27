@@ -4,6 +4,7 @@ from rdkit import Chem
 import pandas as pd
 from tqdm.auto import tqdm
 import pystow
+import sys
 
 
 class RingSystemFinder:
@@ -114,21 +115,31 @@ def create_ring_dictionary(input_smiles, output_csv):
     :param output_csv: output csv file
     :return: None
     """
-    df = pd.read_csv(input_smiles, sep=" ", names=["SMILES", "Name"])
-    ring_system_smiles_list = []
+    ring_system_finder = RingSystemFinder()
+    df = pd.read_csv(input_smiles, names=["SMILES", "Name"])
+    ring_system_output_list = []
+    inchi_smi_dict = {}
     for smi in tqdm(df.SMILES):
         mol = Chem.MolFromSmiles(smi)
-        ring_system_finder = RingSystemFinder()
-        ring_system_smiles_list += ring_system_finder.find_ring_systems(mol)
-    df_out = pd.DataFrame(pd.Series(ring_system_smiles_list).value_counts())
-    df_out.index.name = "ring_system"
-    df_out.columns = ['count']
+        if mol is None:
+            continue
+        ring_system_mols = ring_system_finder.find_ring_systems(mol, as_mols=True)
+        ring_system_inchi_list = [Chem.MolToInchiKey(x) for x in ring_system_mols]
+        ring_system_smiles_list = [Chem.MolToSmiles(x) for x in ring_system_mols]
+        for inchi_val, smi_val in zip(ring_system_inchi_list, ring_system_smiles_list):
+            inchi_smi_dict[inchi_val] = smi_val
+        ring_system_output_list += ring_system_inchi_list
+    df_out = pd.DataFrame(pd.Series(ring_system_output_list).value_counts())
+    df_out.index.name = "InChI"
+    df_out.columns = ['Count']
     df_out = df_out.reset_index()
-    df_out.to_csv(output_csv)
+    df_out['SMILES'] = [inchi_smi_dict.get(x) for x in df_out.InChI]
+    df_out[['SMILES', 'InChI', 'Count']].to_csv(output_csv, index=False)
 
 
 class RingSystemLookup:
     """Lookup ring systems from a dictionary of rings and frequencies"""
+
     def __init__(self, ring_system_csv=None):
         """
         Initialize the lookup table
@@ -161,8 +172,11 @@ class RingSystemLookup:
         :param smi: input SMILES
         :return: list of SMILES for ring systems
         """
+        res = []
         mol = Chem.MolFromSmiles(smi)
-        return self.process_mol(mol)
+        if mol:
+            res = self.process_mol(mol)
+        return res
 
 
 def test_ring_system_lookup(input_filename, output_filename):
@@ -172,7 +186,7 @@ def test_ring_system_lookup(input_filename, output_filename):
     :param output_filename: output csv file
     :return:
     """
-    df = pd.read_csv(input_filename, sep=" ", names=["SMILES", "Name"])
+    df = pd.read_csv(input_filename, names=["SMILES", "Name"])
     ring_system_lookup = RingSystemLookup()
     min_freq_list = []
     for smi in tqdm(df.SMILES):
@@ -187,5 +201,5 @@ def test_ring_system_lookup(input_filename, output_filename):
 
 
 if __name__ == "__main__":
-    url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/test.smi"
-    test_ring_system_lookup(url, "ring_freq_test.csv")
+    create_ring_dictionary(sys.argv[1], sys.argv[2])
+    # test_ring_system_lookup(sys.argv[1],sys.argv[2])

@@ -1,10 +1,10 @@
-import sys
 import itertools
-from operator import itemgetter
+import logging
+import sys
 from io import StringIO
+from operator import itemgetter
 
 import numpy as np
-import pandas as pd
 import py3Dmol
 from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, rdMolDescriptors, Descriptors
@@ -14,7 +14,6 @@ from rdkit.Chem.Descriptors3D import NPR1, NPR2
 from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.ML.Cluster import Butina
-import logging
 
 
 # ----------- Molecular geometry
@@ -89,6 +88,21 @@ def mol2morgan_fp(mol, radius=2, nBits=2048):
     return fp
 
 
+def smi2morgan_fp(smi, radius=2, nBits=2048):
+    """Convert a SMILES to a Morgan fingerprint
+
+    :param smi: SMILES
+    :param radius: fingerprint radius
+    :param nBits: number of fingerprint bits
+    :return: RDKit Morgan fingerprint
+    """
+    mol = Chem.MolFromSmiles(smi)
+    fp = None
+    if mol:
+        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nBits)
+    return fp
+
+
 def mol2numpy_fp(mol, radius=2, nBits=2048):
     """Convert an RDKit molecule to a numpy array with Morgan fingerprint bits
 
@@ -103,13 +117,30 @@ def mol2numpy_fp(mol, radius=2, nBits=2048):
     return arr
 
 
+def smi2numpy_fp(smi, radius=2, nBits=2048):
+    """Convert a SMILES to a numpy array with Morgan fingerprint bits
+
+    :param smi: SMILES string
+    :param radius: fingerprint radius
+    :param nBits: number of fingerprint bits
+    :return: numpy array with RDKit fingerprint bits
+    """
+    mol = Chem.MolFromSmiles(smi)
+    fp = None
+    if mol:
+        arr = np.zeros((0,), dtype=np.int8)
+        fp = mol2morgan_fp(mol=mol, radius=radius, nBits=nBits)
+        DataStructs.ConvertToNumpyArray(fp, arr)
+    return fp
+
+
 # Code borrowed from Brian Kelley's Descriptastorus
 # https://github.com/bp-kelley/descriptastorus
 FUNCS = {name: func for name, func in Descriptors.descList}
 
 
 def apply_func(name, mol):
-    """Apply an RDKit descriptor calculation to a moleucle
+    """Apply an RDKit descriptor calculation to a molecule
 
     :param name: descriptor name
     :param mol: RDKit molecule
@@ -210,7 +241,7 @@ class Ro5Calculator:
 
 # ----------- Clustering
 def taylor_butina_clustering(fp_list, cutoff=0.35):
-    """Cluster a set of fingerprints using the RDKit Taylor-Buting implementation
+    """Cluster a set of fingerprints using the RDKit Taylor-Butina implementation
 
     :param fp_list: a list of fingerprints
     :param cutoff: similarity cutoff
