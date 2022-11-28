@@ -54,7 +54,8 @@ setup(
         'jupyter',
         'Pillow',
         'pandas',
-        'pystow'
+        'pystow',
+        'seaborn'
         ],
     platforms=['Linux',
                'Mac OS-X',
