@@ -151,7 +151,8 @@ class RingSystemLookup:
         else:
             self.rule_path = ring_system_csv
         ring_df = pd.read_csv(self.rule_path)
-        self.ring_dict = dict(ring_df[["ring_system", "count"]].values)
+        self.ring_dict = dict(ring_df[["InChI", "Count"]].values)
+        self.ring_system_finder = RingSystemFinder()
 
     def process_mol(self, mol):
         """
@@ -159,12 +160,15 @@ class RingSystemLookup:
         :param mol: input molecule
         :return: list of SMILES for ring systems
         """
+        output_ring_list = []
         if mol:
-            ring_system_finder = RingSystemFinder()
-            ring_system_list = ring_system_finder.find_ring_systems(mol)
-            return [(x, self.ring_dict.get(x) or 0) for x in ring_system_list]
-        else:
-            return []
+            ring_system_list = self.ring_system_finder.find_ring_systems(mol, as_mols=True)
+            for ring in ring_system_list:
+                smiles = Chem.MolToSmiles(ring)
+                inchi = Chem.MolToInchiKey(ring)
+                count = self.ring_dict.get(inchi) or 0
+                output_ring_list.append((smiles, count))
+        return output_ring_list
 
     def process_smiles(self, smi):
         """
@@ -201,5 +205,8 @@ def test_ring_system_lookup(input_filename, output_filename):
 
 
 if __name__ == "__main__":
+   # ring_system_lookup = RingSystemLookup()
+    #mol = Chem.MolFromSmiles("c1ccccc1")
+    #print(ring_system_lookup.process_mol(mol))
     create_ring_dictionary(sys.argv[1], sys.argv[2])
     # test_ring_system_lookup(sys.argv[1],sys.argv[2])

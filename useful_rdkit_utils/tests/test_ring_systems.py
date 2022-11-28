@@ -5,18 +5,17 @@ from tqdm.auto import tqdm
 
 
 def test_ring_system_finder():
-    buff = """,ring_system,count
-    0,c1ccccc1,4
-    1,O=c1[nH]c(=O)c2[nH]cnc2[nH]1,2
-    2,c1ccncc1,1
-    3,O=C1CC(=O)NC(=O)[N-]1,1
-    4,O=C1C=CC(=O)c2ccccc21,1
-    5,O=C1C=C2CC[C@H]3[C@@H]4CCC[C@H]4CC[C@@H]3[C@H]2CC1,1
-    6,C=C1CCCCC1=C,1
-    7,C=C1CCC[C@@H]2CCC[C@@H]12,1
-    8,c1ccc2ccccc2c1,1
-    9,c1cncnc1,1
-    """
+    buff = """SMILES,InChI,Count
+c1ccccc1,UHOVQNZJYSORNB-UHFFFAOYSA-N,4
+O=c1[nH]c(=O)c2[nH]cnc2[nH]1,LRFVTYWOQMYALW-UHFFFAOYSA-N,2
+c1ccncc1,JUJWROOIHBZHMG-UHFFFAOYSA-N,1
+O=C1CC(=O)NC(=O)[N-]1,HNYOPLTXPVRDBG-UHFFFAOYSA-M,1
+O=C1C=CC(=O)c2ccccc21,FRASJONUBLZVQX-UHFFFAOYSA-N,1
+O=C1C=C2CC[C@H]3[C@@H]4CCC[C@H]4CC[C@@H]3[C@H]2CC1,LWNIAOVFYCEEPT-MDBLMMRSSA-N,1
+C=C1CCCCC1=C,DYEQHQNRKZJUCT-UHFFFAOYSA-N,1
+C=C1CCC[C@@H]2CCC[C@@H]12,UOTNDMDASDMEAG-ZJUUUORDSA-N,1
+c1ccc2ccccc2c1,UFWIBTONFRDIAS-UHFFFAOYSA-N,1
+c1cncnc1,CZPWVGJYEJSRLH-UHFFFAOYSA-N,1"""
     string_fs = StringIO(buff)
     expected_df = pd.read_csv(string_fs)
 
