@@ -12,4 +12,3 @@ def set_sns_size(width, height):
     """Set seaborn plot slize"""
     sns.set(rc={'figure.figsize': (width, height)})
 
-

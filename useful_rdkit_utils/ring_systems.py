@@ -184,11 +184,10 @@ class RingSystemLookup:
 
 
 def test_ring_system_lookup(input_filename, output_filename):
-    """
-    test for ring system lookup
+    """Test for RingSystemLookup
     :param input_filename: input smiles file
     :param output_filename: output csv file
-    :return:
+    :return: None
     """
     df = pd.read_csv(input_filename, names=["SMILES", "Name"])
     ring_system_lookup = RingSystemLookup()
@@ -204,9 +203,16 @@ def test_ring_system_lookup(input_filename, output_filename):
     df.to_csv(output_filename, index=False)
 
 
+def get_min_ring_frequency(ring_list):
+    """Get minimum frequency from RingSystemLookup.process_smiles
+    :param ring_list: output from RingSystemLookup.process_smiles
+    :return: minimum frequency
+    """
+    if len(ring_list):
+        return min([x[1] for x in ring_list])
+    else:
+        return -1
+
+
 if __name__ == "__main__":
-   # ring_system_lookup = RingSystemLookup()
-    #mol = Chem.MolFromSmiles("c1ccccc1")
-    #print(ring_system_lookup.process_mol(mol))
     create_ring_dictionary(sys.argv[1], sys.argv[2])
-    # test_ring_system_lookup(sys.argv[1],sys.argv[2])
