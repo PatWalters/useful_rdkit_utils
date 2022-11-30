@@ -55,7 +55,8 @@ setup(
         'Pillow',
         'pandas',
         'pystow',
-        'seaborn'
+        'seaborn',
+        'click'
         ],
     platforms=['Linux',
                'Mac OS-X',

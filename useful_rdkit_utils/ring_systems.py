@@ -5,6 +5,8 @@ import pandas as pd
 from tqdm.auto import tqdm
 import pystow
 import sys
+import click
+from operator import itemgetter
 
 
 class RingSystemFinder:
@@ -116,7 +118,7 @@ def create_ring_dictionary(input_smiles, output_csv):
     :return: None
     """
     ring_system_finder = RingSystemFinder()
-    df = pd.read_csv(input_smiles, names=["SMILES", "Name"])
+    df = pd.read_csv(input_smiles, sep=" ", names=["SMILES", "Name"])
     ring_system_output_list = []
     inchi_smi_dict = {}
     for smi in tqdm(df.SMILES):
@@ -189,30 +191,43 @@ def test_ring_system_lookup(input_filename, output_filename):
     :param output_filename: output csv file
     :return: None
     """
-    df = pd.read_csv(input_filename, names=["SMILES", "Name"])
+    df = pd.read_csv(input_filename, sep=" ", names=["SMILES", "Name"])
     ring_system_lookup = RingSystemLookup()
     min_freq_list = []
     for smi in tqdm(df.SMILES):
         freq_list = ring_system_lookup.process_smiles(smi)
-        if len(freq_list):
-            res = min([x[1] for x in freq_list])
-        else:
-            res = -1
-        min_freq_list.append(res)
-    df['min_freq'] = min_freq_list
+        min_freq_list.append(get_min_ring_frequency(freq_list))
+    df['min_ring'] = [x[0] for x in min_freq_list]
+    df['min_freq'] = [x[1] for x in min_freq_list]
     df.to_csv(output_filename, index=False)
 
 
 def get_min_ring_frequency(ring_list):
     """Get minimum frequency from RingSystemLookup.process_smiles
     :param ring_list: output from RingSystemLookup.process_smiles
-    :return: minimum frequency
+    :return: [ring_with minimum frequency, minimum frequency], acyclic molecules return ["",-1]
     """
+    ring_list.sort(key=itemgetter(1))
     if len(ring_list):
-        return min([x[1] for x in ring_list])
+        return ring_list[0]
     else:
-        return -1
+        return ["", -1]
+
+
+@click.command()
+@click.option("--mode", prompt="mode [build|search]", help="[build|search]")
+@click.option("--infile", prompt="Input csv file", help="input file")
+@click.option("--outfile", prompt="Output csv file", help="output file")
+def main(mode, infile, outfile):
+    mode_list = ["build", "search"]
+    if mode not in mode_list:
+        print(f"mode must be one of {mode_list}")
+        sys.exit(0)
+    if mode == "build":
+        create_ring_dictionary(infile, outfile)
+    if mode == "search":
+        test_ring_system_lookup(infile, outfile)
 
 
 if __name__ == "__main__":
-    create_ring_dictionary(sys.argv[1], sys.argv[2])
+    main()
