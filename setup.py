@@ -49,7 +49,7 @@ setup(
     install_requires = [
         'numpy',
         'py3DMol',
-        'rdkit-pypi',
+        'rdkit',
         'pytest',
         'jupyter',
         'Pillow',
