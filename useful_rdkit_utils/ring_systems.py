@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 from rdkit import Chem
+from rdkit.Chem.rdMolDescriptors import CalcNumRings
 import pandas as pd
 from tqdm.auto import tqdm
 import pystow
 import sys
 import click
 from operator import itemgetter
+
+import useful_rdkit_utils
 
 
 class RingSystemFinder:

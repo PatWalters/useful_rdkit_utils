@@ -385,6 +385,17 @@ def max_ring_size(mol):
         return max([len(x) for x in ri.AtomRings()])
 
 
+def ring_stats(mol):
+    """Get some simple statistics for rings
+    
+    :param mol: RDKit molecule
+    :return: number of rings, maximum ring size
+    """
+    max_size = useful_rdkit_utils.max_ring_size(mol)
+    num_rings = CalcNumRings(mol)
+    return num_rings, max_size
+
+
 # ----------- 3D related stuff
 def gen_3d(mol):
     """Generate a 3D structure for a RDKit molecule
