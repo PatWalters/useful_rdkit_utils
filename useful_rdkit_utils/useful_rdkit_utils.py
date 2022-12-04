@@ -14,6 +14,7 @@ from rdkit.Chem.Descriptors3D import NPR1, NPR2
 from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.ML.Cluster import Butina
+from rdkit.Chem.rdMolDescriptors import CalcNumRings
 
 
 # ----------- Molecular geometry
