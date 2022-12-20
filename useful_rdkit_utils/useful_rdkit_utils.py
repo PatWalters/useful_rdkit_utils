@@ -150,7 +150,7 @@ def apply_func(name, mol):
     try:
         return FUNCS[name](mol)
     except:
-        logging.exception("function application failed (%s->%s)", name, Chem.MolToSmiles(m))
+        logging.exception("function application failed (%s->%s)", name, Chem.MolToSmiles(mol))
         return None
 
 
