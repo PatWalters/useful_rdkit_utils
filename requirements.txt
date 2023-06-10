@@ -1,7 +1,6 @@
 click
 numpy
 py3DMol
-rdkit
 pytest
 jupyter
 Pillow
