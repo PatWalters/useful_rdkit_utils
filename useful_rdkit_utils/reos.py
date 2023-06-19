@@ -14,12 +14,20 @@ class REOS:
     """
 
     def __init__(self, active_rules=None):
+        self.output_smarts = False
         if active_rules is None:
             active_rules = ['Glaxo']
         url = 'https://raw.githubusercontent.com/PatWalters/rd_filters/master/rd_filters/data/alert_collection.csv'
         self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
         self.rule_df = pd.read_csv(self.rule_path)
         self.read_rules(self.rule_path, active_rules)
+
+    def set_output_smarts(self, output_smarts):
+        """Determine whether SMARTS are returned
+        :param output_smarts: True or False
+        :return: None
+        """
+        self.output_smarts = output_smarts
 
     def parse_smarts(self):
         """Parse the SMARTS strings in the rules file to molecule objects and check for validity
@@ -95,11 +103,19 @@ class REOS:
         :param mol: input RDKit molecule
         :return: the first rule matched or "ok" if no rules are matched
         """
-        cols = ['description', 'rule_set_name', 'pat', 'max']
-        for desc, rule_set_name, pat, max_val in self.active_rule_df[cols].values:
+        cols = ['description', 'rule_set_name', 'smarts', 'pat', 'max']
+        if self.output_smarts:
+            ret_val = ("ok", "ok", "ok")
+        else:
+            ret_val = ("ok", "ok")
+        for desc, rule_set_name, smarts, pat, max_val in self.active_rule_df[cols].values:
             if len(mol.GetSubstructMatches(pat)) > max_val:
-                return rule_set_name, desc
-        return "ok", "ok"
+                if self.output_smarts:
+                    ret_val = rule_set_name, desc, smarts
+                else:
+                    ret_val = rule_set_name, desc
+                break
+        return ret_val
 
     def process_smiles(self, smiles):
         """Convert SMILES to an RDKit molecule and call process_mol
