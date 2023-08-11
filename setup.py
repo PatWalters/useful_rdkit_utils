@@ -48,16 +48,18 @@ setup(
     # url='http://www.my_package.com',  # Website
     install_requires = [
         'numpy',
-        'py3DMol',
         'rdkit',
-        'pytest',
-        'jupyter',
-        'Pillow',
         'pandas',
         'pystow',
-        'seaborn',
-        'click'
-        ],
+    ],
+    extra_requires = {
+        'viz': ['py3DMol', 'Pillow', 'seaborn'],
+        'jupyter': ['jupyter'],
+        'cli': ['click']
+    },
+    tests_require = [
+        'pytest'
+    ],
     platforms=['Linux',
                'Mac OS-X',
                'Unix',

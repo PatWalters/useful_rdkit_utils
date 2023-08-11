@@ -7,6 +7,12 @@ The most recent release can be installed from
 
     $ pip install useful_rdkit_utils
 
+To get the extras, install with:
+
+.. code-block:: shell
+
+    $ pip install useful_rdkit_utils[viz,cli,jupyter]
+
 The most recent code and data can be installed directly from GitHub with:
 
 .. code-block:: shell
