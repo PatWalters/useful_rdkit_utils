@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from dataclasses import dataclass
+from pathlib import Path
 
 from rdkit import Chem
 from rdkit.Chem.rdMolDescriptors import CalcNumRings
@@ -8,9 +10,7 @@ import pystow
 import sys
 import click
 from operator import itemgetter
-
-import useful_rdkit_utils
-
+from importlib import resources
 
 class RingSystemFinder:
     """A class to identify ring systems """
@@ -142,22 +142,58 @@ def create_ring_dictionary(input_smiles, output_csv):
     df_out[['SMILES', 'InChI', 'Count']].to_csv(output_csv, index=False)
 
 
+@dataclass(frozen=True, slots=True)
 class RingSystemLookup:
     """Lookup ring systems from a dictionary of rings and frequencies"""
+    ring_dict: dict[str, int]
+    ring_system_finder: RingSystemFinder
 
-    def __init__(self, ring_system_csv=None):
+    @classmethod
+    def default(cls):
+        ring_df = cls._read_file(None)
+        return cls(
+            dict(ring_df[["InChI", "Count"]].values),
+            RingSystemFinder()
+        )
+
+    @classmethod
+    def from_file(cls, path: Path | str = None):
+        ring_df = cls._read_file(path)
+        return cls(
+            dict(ring_df[["InChI", "Count"]].values),
+            RingSystemFinder()
+        )
+
+    @classmethod
+    def _read_file(cls, path: Path | str | None = None) -> pd.DataFrame:
         """
         Initialize the lookup table
-        :param ring_system_csv: csv file with ring smiles and frequency
+        :param path: csv file with ring smiles and frequency
         """
-        if ring_system_csv is None:
-            url = 'https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/chembl_ring_systems.csv'
-            self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
-        else:
-            self.rule_path = ring_system_csv
-        ring_df = pd.read_csv(self.rule_path)
-        self.ring_dict = dict(ring_df[["InChI", "Count"]].values)
-        self.ring_system_finder = RingSystemFinder()
+        if path is None:
+            with (
+                resources.files("useful_rdkit_utils")
+                .joinpath("data")
+                .joinpath("ring_systems")
+                .joinpath("chembl_ring_systems.parquet")
+                .open("rb")
+            ) as f:
+                return pd.read_parquet(f)
+        if isinstance(path, str) and path.startswith("https://"):
+            path = pystow.ensure('useful_rdkit_utils', 'data', url=path)
+        path = Path(path)
+        if any(path.name.endswith(".csv" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
+            return pd.read_csv(path)
+        if any(path.name.endswith(".tsv" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
+            return pd.read_table(path)
+        if any(path.name.endswith(".tab" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
+            return pd.read_table(path)
+        if any(path.name.endswith(".json" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
+            return pd.read_json(path)
+        if path.suffix in {".parquet", ".snappy"}:
+            return pd.read_parquet(path)
+        if path.suffix in {".arrow", ".feather"}:
+            return pd.read_feather(path)
 
     def process_mol(self, mol):
         """

@@ -5,13 +5,11 @@ from io import StringIO
 from operator import itemgetter
 
 import numpy as np
-import py3Dmol
 from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import AllChem, rdMolDescriptors, Descriptors
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
 from rdkit.Chem.Descriptors3D import NPR1, NPR2
-from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.ML.Cluster import Butina
 from rdkit.Chem.rdMolDescriptors import CalcNumRings
@@ -267,6 +265,7 @@ def rd_setup_jupyter():
 
     :return: None
     """
+    from rdkit.Chem.Draw import IPythonConsole
     IPythonConsole.ipython_useSVG = True
     IPythonConsole.molSize = 300, 300
     rdDepictor.SetPreferCoordGen(True)
@@ -277,6 +276,7 @@ def rd_enable_svg():
 
     :return: None
     """
+    from rdkit.Chem.Draw import IPythonConsole
     IPythonConsole.ipython_useSVG = True
 
 
@@ -285,6 +285,7 @@ def rd_enable_png():
 
     :return: None
     """
+    from rdkit.Chem.Draw import IPythonConsole
     IPythonConsole.ipython_useSVG = False
 
 
@@ -295,6 +296,7 @@ def rd_set_image_size(x, y):
     :param y: Y dimension
     :return: None
     """
+    from rdkit.Chem.Draw import IPythonConsole
     IPythonConsole.molSize = x, y
 
 
@@ -429,6 +431,7 @@ def MolTo3DView(mol, size=(300, 300), style="stick", surface=False, opacity=0.5)
     :opacity: float, opacity of surface, range 0.0-1.0
     :return: viewer: py3Dmol.view, a class for constructing embedded 3Dmol.js views in ipython notebooks.
     """
+    import py3Dmol
     assert style in ('line', 'stick', 'sphere', 'carton')
     mblock = Chem.MolToMolBlock(mol)
     viewer = py3Dmol.view(width=size[0], height=size[1])

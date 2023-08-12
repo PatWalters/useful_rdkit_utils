@@ -28,7 +28,7 @@ c1cncnc1,CZPWVGJYEJSRLH-UHFFFAOYSA-N,1"""
 def test_ring_system_lookup():
     url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/test.smi"
     df = pd.read_csv(url, sep=" ", names=["SMILES", "Name"])
-    ring_system_lookup = uru.RingSystemLookup()
+    ring_system_lookup = uru.RingSystemLookup.default()
     min_freq_list = []
     for smi in tqdm(df.SMILES):
         freq_list = ring_system_lookup.process_smiles(smi)
