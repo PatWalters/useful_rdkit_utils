@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name="useful_rdkit_utils"
+dynamic=["version"]
+authors = [
+  { name="Pat Walters", email="wpwalters@gmail.com" },
+]
+description = "A collection of useful RDKit functions"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+     'numpy',	
+     'rdkit',
+     'pandas',
+     'pystow',
+]
+
+[tool.hatch.version]
+path = "useful_rdkit_utils/__init__.py"
+
+[project.optional-dependencies]
+tests = ['pytest']
+viz = ['py3DMol', 'Pillow', 'seaborn']
+cli = ['click']
+
+[project.urls]
+"Homepage" = "https://github.com/PatWalters/useful_rdkit_utils"
+"Bug Tracker" = "https://github.com/PatWalters/useful_rdkit_utils/issues"
