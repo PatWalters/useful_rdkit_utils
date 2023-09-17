@@ -21,6 +21,7 @@ dependencies = [
      'rdkit',
      'pandas',
      'pystow',
+     'pyarrow'
 ]
 
 [tool.hatch.version]
