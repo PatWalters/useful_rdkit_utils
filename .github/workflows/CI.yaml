@@ -60,7 +60,7 @@ jobs:
       shell: bash
 
       run: |
-        pytest -v --cov=useful_rdkit_utils --cov-report=xml --color=yes useful_rdkit_utils/tests/
+        pytest -v --cov=useful_rdkit_utils --cov-report=xml --color=yes tests/
 
     - name: CodeCov
       uses: codecov/codecov-action@v1
