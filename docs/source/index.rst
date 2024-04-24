@@ -7,7 +7,16 @@ useful_rdkit_utils |release| Documentation
    :name: start
 
    installation
-   usage
+   reos
+   ring_systems
+   descriptors
+   geometry
+   misc_utils
+   jupyter
+   pandas
+   seaborn
+   stats
+   units
 
 Indices and Tables
 ------------------

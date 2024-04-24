@@ -27,7 +27,7 @@ copyright = f'{date.today().year}, Pat Walters'
 author = 'Pat Walters'
 
 # The full version, including alpha/beta/rc tags.
-release = '0.1.6'
+release = '0.5.0'
 
 # The short X.Y version.
 parsed_version = re.match(
@@ -90,7 +90,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -225,9 +225,11 @@ texinfo_documents = [
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {
-    'https://docs.python.org/3/': None,
-}
+#intersphinx_mapping = {
+#    'https://docs.python.org/3/': None,
+#}
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 autoclass_content = 'both'
 

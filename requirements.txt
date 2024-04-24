@@ -14,3 +14,6 @@ sphinx-automodapi
 sphinx-rtd-theme
 tqdm
 rdkit
+
+scikit-learn
+dataclasses

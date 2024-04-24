@@ -1,16 +1,18 @@
 #!/usr/bin/env python
+import itertools
+import sys
 from dataclasses import dataclass
+from importlib import resources
+from operator import itemgetter
 from pathlib import Path
 
+import click
+import pandas as pd
+import pystow
 from rdkit import Chem
 from rdkit.Chem.rdMolDescriptors import CalcNumRings
-import pandas as pd
 from tqdm.auto import tqdm
-import pystow
-import sys
-import click
-from operator import itemgetter
-from importlib import resources
+
 
 class RingSystemFinder:
     """A class to identify ring systems """
@@ -172,11 +174,11 @@ class RingSystemLookup:
         """
         if path is None:
             with (
-                resources.files("useful_rdkit_utils")
-                .joinpath("data")
-                .joinpath("ring_systems")
-                .joinpath("chembl_ring_systems.parquet")
-                .open("rb")
+                    resources.files("useful_rdkit_utils")
+                            .joinpath("data")
+                            .joinpath("ring_systems")
+                            .joinpath("chembl_ring_systems.parquet")
+                            .open("rb")
             ) as f:
                 return pd.read_parquet(f)
         if isinstance(path, str) and path.startswith("https://"):
@@ -231,7 +233,7 @@ def test_ring_system_lookup(input_filename, output_filename):
     :return: None
     """
     df = pd.read_csv(input_filename, sep=" ", names=["SMILES", "Name"])
-    ring_system_lookup = RingSystemLookup()
+    ring_system_lookup = RingSystemLookup.default()
     min_freq_list = []
     for smi in tqdm(df.SMILES):
         freq_list = ring_system_lookup.process_smiles(smi)
@@ -243,6 +245,7 @@ def test_ring_system_lookup(input_filename, output_filename):
 
 def get_min_ring_frequency(ring_list):
     """Get minimum frequency from RingSystemLookup.process_smiles
+
     :param ring_list: output from RingSystemLookup.process_smiles
     :return: [ring_with minimum frequency, minimum frequency], acyclic molecules return ["",-1]
     """
@@ -266,6 +269,48 @@ def main(mode, infile, outfile):
         create_ring_dictionary(infile, outfile)
     if mode == "search":
         test_ring_system_lookup(infile, outfile)
+
+
+# ----------- Ring stats
+def get_spiro_atoms(mol):
+    """Get atoms that are part of a spiro fusion
+
+    :param mol: input RDKit molecule
+    :return: a list of atom numbers for atoms that are the centers of spiro fusions
+    """
+    info = mol.GetRingInfo()
+    ring_sets = [set(x) for x in info.AtomRings()]
+    spiro_atoms = []
+    for i, j in itertools.combinations(ring_sets, 2):
+        i_and_j = (i.intersection(j))
+        if len(i_and_j) == 1:
+            spiro_atoms += list(i_and_j)
+    return spiro_atoms
+
+
+def max_ring_size(mol):
+    """Get the size of the largest ring in a molecule
+
+    :param mol: input_molecule
+    :return: size of the largest ring or 0 for an acyclic molecule
+    """
+    ri = mol.GetRingInfo()
+    atom_rings = ri.AtomRings()
+    if len(atom_rings) == 0:
+        return 0
+    else:
+        return max([len(x) for x in ri.AtomRings()])
+
+
+def ring_stats(mol):
+    """Get some simple statistics for rings
+
+    :param mol: RDKit molecule
+    :return: number of rings, maximum ring size
+    """
+    max_size = max_ring_size(mol)
+    num_rings = CalcNumRings(mol)
+    return num_rings, max_size
 
 
 if __name__ == "__main__":
