@@ -21,7 +21,8 @@ dependencies = [
      'rdkit',
      'pandas',
      'pystow',
-     'pyarrow'
+     'pyarrow',
+     'seaborn'
 ]
 
 [tool.hatch.version]
@@ -29,7 +30,7 @@ path = "useful_rdkit_utils/__init__.py"
 
 [project.optional-dependencies]
 tests = ['pytest']
-viz = ['py3DMol', 'Pillow', 'seaborn']
+viz = ['py3DMol', 'seaborn']
 cli = ['click']
 
 [project.urls]
