@@ -7,7 +7,7 @@ import pandas as pd
 
 def generate_3D_mol():
     mol_block = """
-  Mrv2004 12282122453D          
+  Mrv2004 12282122453D
 
   6  6  0  0  0  0            999 V2000
    -0.0237   -1.2344   -1.9689 C   0  0  0  0  0  0  0  0  0  0  0  0
@@ -125,7 +125,7 @@ C[N+](C)(C)CCO.Cn1c(=O)c2[n-]cnc2n(C)c1=O 674385"""
     df["mol"] = df.SMILES.apply(Chem.MolFromSmiles)
     df["fp"] = df.mol.apply(uru.mol2morgan_fp)
     clusters = uru.taylor_butina_clustering(df.fp.values)
-    assert str(clusters) == "[6 0 0 0 5 4 3 1 1 2]"
+    assert str(clusters) == "[6, 0, 0, 0, 5, 4, 3, 1, 1, 2]"
 
 
 def test_label_atoms():

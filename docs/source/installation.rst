@@ -17,7 +17,7 @@ The most recent code and data can be installed directly from GitHub with:
 
 .. code-block:: shell
 
-    $ pip install git+https://github.com//useful_rdkit_utils.git
+    $ pip install git+https://github.com/PatWalters/useful_rdkit_utils.git
 
 To install in development mode, use the following:
 
