@@ -22,7 +22,9 @@ dependencies = [
      'pandas',
      'pystow',
      'pyarrow',
-     'seaborn'
+     'seaborn',
+     'scipy',
+     'tqdm'
 ]
 
 [tool.hatch.version]
