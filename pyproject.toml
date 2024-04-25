@@ -24,7 +24,9 @@ dependencies = [
      'pyarrow',
      'seaborn',
      'scipy',
-     'tqdm'
+     'tqdm',
+     'scikit-learn',
+     'dataclasses'
 ]
 
 [tool.hatch.version]
