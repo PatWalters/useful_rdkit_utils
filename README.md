@@ -31,17 +31,17 @@ pip install git+https://github.com/PatWalters/useful_rdkit_utils
 The notebooks directory contains Jupyter notebooks that show how to use some of the functions in this collection.
 
 ### Contributing
-I'm very open to PRs with corrections and/or contributions. 
+I'm very open to PRs with corrections and/or contributions.
 
 ### Copyright
 
-Copyright (c) 2021, Pat Walters
+Copyright (c) 2021-2024, Pat Walters
 
 ### License
 
 The code in this package is licensed under the MIT License.
 
 ### Acknowledgements
- 
-Project based on the 
+
+Project based on the
 [Computational Molecular Science Python Cookiecutter](https://github.com/molssi/cookiecutter-cms) version 1.6.
