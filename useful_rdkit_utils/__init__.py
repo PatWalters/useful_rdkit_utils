@@ -11,5 +11,6 @@ from .units import *
 from .geometry import *
 from .descriptors import *
 from .jupyter_utils import *
+from .reactions import *
 
 __version__ = "0.5"
