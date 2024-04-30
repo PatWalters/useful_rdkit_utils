@@ -13,7 +13,19 @@ class REOS:
     https://doi.org/10.1016/S1367-5931(99)80058-1
     """
 
-    def __init__(self, active_rules=None):
+    def __init__(self, active_rules: Optional[List[str]] = None) -> None:
+        """
+        Initialize the REOS class.
+
+        Parameters
+        ----------
+        active_rules : Optional[List[str]], default=None
+            List of active rules. If None, the default rule 'Glaxo' is used.
+
+        Returns
+        -------
+        None
+        """
         self.output_smarts = False
         if active_rules is None:
             active_rules = ['Glaxo']
@@ -21,6 +33,7 @@ class REOS:
         self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
         self.rule_df = pd.read_csv(self.rule_path)
         self.read_rules(self.rule_path, active_rules)
+        self.active_rule_df = None
 
     def set_output_smarts(self, output_smarts):
         """Determine whether SMARTS are returned
@@ -89,6 +102,24 @@ class REOS:
         :return: a list of active rule sets
         """
         return self.active_rule_df.rule_set_name.unique()
+
+    def drop_rule(self, description: str) -> None:
+        """
+        Drops a rule from the active rule set based on its description.
+
+        Parameters
+        ----------
+        description : str
+            The description of the rule to be dropped.
+
+        Returns
+        -------
+        None
+        """
+        num_rules_before = len(self.active_rule_df)
+        self.active_rule_df = self.active_rule_df.query("description != @description")
+        num_rules_after = len(self.active_rule_df)
+        print(f"Dropped {num_rules_before - num_rules_after} rules")
 
     def get_rule_file_location(self):
         """Get the path to the rules file as a Path

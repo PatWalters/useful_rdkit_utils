@@ -104,20 +104,20 @@ class RDKitDescriptors:
         :param mol: RDKit molecule
         :return: a numpy array with descriptors
         """
-        res = [apply_func(name, mol) for name in self.desc_names]
-        return np.array(res, dtype=float)
+        if mol is not None:
+            res = np.array([apply_func(name, mol) for name in self.desc_names], dtype=float)
+        else:
+            res = np.array([None] * len(self.desc_names))
+        return res
 
-    def calc_smiles(self, smiles: str) -> Optional[np.ndarray]:
+    def calc_smiles(self, smiles: str) -> np.ndarray:
         """Calculate descriptors for a SMILES string
 
         :param smiles: SMILES string
         :return: a numpy array with properties
         """
         mol = Chem.MolFromSmiles(smiles)
-        if mol:
-            return self.calc_mol(mol)
-        else:
-            return None
+        return self.calc_smiles(smiles)
 
     def pandas_smiles(self, smiles_list: List[str]) -> pd.DataFrame:
         """
@@ -128,32 +128,22 @@ class RDKitDescriptors:
         """
         desc_list = []
         for smi in tqdm(smiles_list):
-            desc = self.calc_smiles(smi)
-            if desc is not None:
-                desc_list.append(desc)
-            else:
-                desc_list.append([None] * len(self.desc_names))
+            desc_list.append(self.calc_smiles(smi))
         df = pd.DataFrame(desc_list, columns=self.desc_names)
         return df
 
+    def pandas_mols(self, mol_list: List[Mol]) -> pd.DataFrame:
+        """
+        Calculate descriptors for a list of RDKit molecules and return them as a pandas DataFrame.
 
-def pandas_mols(self, mol_list: List[Mol]) -> pd.DataFrame:
-    """
-    Calculate descriptors for a list of RDKit molecules and return them as a pandas DataFrame.
-
-    :param mol_list: List of RDKit molecules
-    :return: DataFrame with calculated descriptors. Each row corresponds to a molecule and each column to a descriptor.
-    """
-    desc_list = []
-    desc = None
-    for mol in tqdm(mol_list):
-        if mol:
-            desc = self.calc_mol(mol)
-        else:
-            desc = [None] * len(self.desc_names)
-        desc_list.append(desc)
-    df = pd.DataFrame(desc_list, columns=self.desc_names)
-    return df
+        :param mol_list: List of RDKit molecules
+        :return: DataFrame with calculated descriptors. Each row corresponds to a molecule and each column to a descriptor.
+        """
+        desc_list = []
+        for mol in tqdm(mol_list):
+            desc_list.append(self.calc_mol(mol))
+        df = pd.DataFrame(desc_list, columns=self.desc_names)
+        return df
 
 
 class RDKitProperties:
@@ -169,7 +159,11 @@ class RDKitProperties:
         :param mol: RDKit molecule
         :return: a numpy array with properties
         """
-        return np.array(self.property_getter.ComputeProperties(mol))
+        if mol is not None:
+            res = np.array(self.property_getter.ComputeProperties(mol))
+        else:
+            res = np.array([None] * len(self.property_names))
+        return res
 
     def calc_smiles(self, smi: str) -> Optional[np.ndarray]:
         """Calculate properties for a SMILES string
@@ -178,15 +172,45 @@ class RDKitProperties:
         :return: a numpy array with properties
         """
         mol = Chem.MolFromSmiles(smi)
-        if mol:
-            return np.array(self.calc_mol(mol))
-        else:
-            return None
+        return self.calc_mol(mol)
+
+    def pandas_smiles(self, smi_list):
+        prop_list = []
+        for smi in tqdm(smi_list):
+            prop_list.append(self.calc_smiles(smi))
+        return pd.DataFrame(prop_list, columns=[self.property_names])
+
+    def pandas_mols(self, mol_list):
+        prop_list = []
+        props = None
+        for mol in tqdm(mol_list):
+            prop_list.append(self.calc_mol(mol))
+        return pd.DataFrame(prop_list, columns=[self.property_names])
 
 
 class Ro5Calculator:
     """
-    Calculate Rule of 5 properties + TPSA
+    A class used to calculate Lipinski's Rule of Five properties for a given molecule.
+
+    ...
+
+    Attributes
+    ----------
+    names : List[str]
+        a list of names of the properties to be calculated
+    functions : List[Callable[[Mol], float]]
+        a list of functions used to calculate the properties
+
+    Methods
+    -------
+    calc_mol(mol: Mol) -> np.ndarray:
+        Calculates properties for a RDKit molecule
+    calc_smiles(smi: str) -> Optional[np.ndarray]:
+        Calculates properties for a SMILES string
+    pandas_smiles(smiles_list: List[str]) -> pd.DataFrame:
+        Calculates properties for a list of SMILES strings and returns them as a pandas DataFrame
+    pandas_mols(mol_list: List[Mol]) -> pd.DataFrame:
+        Calculates properties for a list of RDKit molecules and returns them as a pandas DataFrame
     """
 
     def __init__(self):
@@ -194,21 +218,76 @@ class Ro5Calculator:
         self.functions: List[Callable[[Mol], float]] = [MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA]
 
     def calc_mol(self, mol: Mol) -> np.ndarray:
-        """Calculate properties for a RDKit molecule
-
-        :param mol: RDKit molecule
-        :return: a numpy array with properties
         """
-        return np.array([x(mol) for x in self.functions])
+        Calculate properties for a RDKit molecule
+
+        Parameters
+        ----------
+        mol : Mol
+            RDKit molecule
+
+        Returns
+        -------
+        np.ndarray
+            a numpy array with properties
+        """
+        if mol is not None:
+            res = np.array([x(mol) for x in self.functions])
+        else:
+            res = np.array([None] * len(self.names))
+        return res
 
     def calc_smiles(self, smi: str) -> Optional[np.ndarray]:
-        """Calculate properties for a SMILES string
+        """
+        Calculate properties for a SMILES string
 
-        :param smi: SMILES string
-        :return: a numpy array with properties
+        Parameters
+        ----------
+        smi : str
+            SMILES string
+
+        Returns
+        -------
+        Optional[np.ndarray]
+            a numpy array with properties
         """
         mol = Chem.MolFromSmiles(smi)
-        if mol:
-            return self.calc_mol(mol)
-        else:
-            return None
+        return self.calc_mol(mol)
+
+    def pandas_smiles(self, smiles_list: List[str]) -> pd.DataFrame:
+        """
+        Calculate properties for a list of SMILES strings and return them as a pandas DataFrame
+
+        Parameters
+        ----------
+        smiles_list : List[str]
+            List of SMILES strings
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with calculated properties. Each row corresponds to a SMILES string and each column to a property.
+        """
+        prop_list = []
+        for smiles in tqdm(smiles_list):
+            prop_list.append(self.calc_smiles(smiles))
+        return pd.DataFrame(prop_list, columns=self.names)
+
+    def pandas_mols(self, mol_list: List[Mol]) -> pd.DataFrame:
+        """
+        Calculate properties for a list of RDKit molecules and return them as a pandas DataFrame
+
+        Parameters
+        ----------
+        mol_list : List[Mol]
+            List of RDKit molecules
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with calculated properties. Each row corresponds to a molecule and each column to a property.
+        """
+        prop_list = []
+        for mol in tqdm(mol_list):
+            prop_list.append(self.calc_mol(mol))
+        return pd.DataFrame(prop_list, columns=self.names)
