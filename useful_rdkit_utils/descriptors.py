@@ -117,7 +117,7 @@ class RDKitDescriptors:
         :return: a numpy array with properties
         """
         mol = Chem.MolFromSmiles(smiles)
-        return self.calc_smiles(smiles)
+        return self.calc_mol(mol)
 
     def pandas_smiles(self, smiles_list: List[str]) -> pd.DataFrame:
         """

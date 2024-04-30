@@ -1,9 +1,9 @@
 import sys
-from pathlib import Path
 
 import pandas as pd
 import pystow
 from rdkit import Chem
+from typing import List, Optional
 
 
 class REOS:
@@ -31,9 +31,10 @@ class REOS:
             active_rules = ['Glaxo']
         url = 'https://raw.githubusercontent.com/PatWalters/rd_filters/master/rd_filters/data/alert_collection.csv'
         self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
+        self.active_rule_df = None
         self.rule_df = pd.read_csv(self.rule_path)
         self.read_rules(self.rule_path, active_rules)
-        self.active_rule_df = None
+
 
     def set_output_smarts(self, output_smarts):
         """Determine whether SMARTS are returned
