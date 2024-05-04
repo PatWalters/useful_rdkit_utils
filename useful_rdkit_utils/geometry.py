@@ -39,7 +39,8 @@ def gen_3d(mol: Mol) -> Optional[Mol]:
     :param mol: input molecule
     :return: molecule with 3D coordinates
     """
-    gen_conformers(mol, num_confs=1)
+    mol_3d = gen_conformers(mol, num_confs=1)
+    return mol_3d
 
 
 def gen_conformers(mol, num_confs=10):
