@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import py3Dmol
 from rdkit import Chem
@@ -5,7 +7,6 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.Descriptors3D import NPR1, NPR2
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.Chem.rdchem import Mol
-from typing import Optional
 
 
 # ----------- Molecular geometry
@@ -38,17 +39,8 @@ def gen_3d(mol: Mol) -> Optional[Mol]:
     :param mol: input molecule
     :return: molecule with 3D coordinates
     """
-    try:
-        mol = Chem.AddHs(mol)
-        params = AllChem.ETKDGv3()
-        params.useSmallRingTorsions = True
-        Chem.AddHs(mol)
-        AllChem.EmbedMolecule(mol, params=params)
-        AllChem.MMFFOptimizeMolecule(mol)
-        mol = Chem.RemoveHs(mol)
-        return mol
-    except ValueError:
-        return None
+    gen_conformers(mol, num_confs=1)
+
 
 def gen_conformers(mol, num_confs=10):
     """Generate conformers for a molecule
@@ -56,12 +48,15 @@ def gen_conformers(mol, num_confs=10):
     :param mol: RDKit molecule
     :return: molecule with conformers
     """
-    mol = Chem.AddHs(mol)
-    params = AllChem.ETKDGv3()
-    params.useSmallRingTorsions = True
-    AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, params=params)
-    AllChem.MMFFOptimizeMoleculeConfs(mol)
-    mol = Chem.RemoveHs(mol)
+    try:
+        mol = Chem.AddHs(mol)
+        params = AllChem.ETKDGv3()
+        params.useSmallRingTorsions = True
+        AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, params=params)
+        AllChem.MMFFOptimizeMoleculeConfs(mol)
+        mol = Chem.RemoveHs(mol)
+    except ValueError:
+        mol = None
     return mol
 
 

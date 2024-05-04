@@ -1,9 +1,12 @@
 import sys
+from typing import List, Optional
 
 import pandas as pd
 import pystow
 from rdkit import Chem
-from typing import List, Optional
+from tqdm.auto import tqdm
+from rdkit.Chem.rdchem import Mol
+
 
 
 class REOS:
@@ -17,14 +20,9 @@ class REOS:
         """
         Initialize the REOS class.
 
-        Parameters
-        ----------
-        active_rules : Optional[List[str]], default=None
-            List of active rules. If None, the default rule 'Glaxo' is used.
-
-        Returns
-        -------
-        None
+        :param active_rules: List of active rules. If None, the default rule 'Glaxo' is used.
+        :type active_rules: Optional[List[str]]
+        :default active_rules: None
         """
         self.output_smarts = False
         if active_rules is None:
@@ -34,7 +32,6 @@ class REOS:
         self.active_rule_df = None
         self.rule_df = pd.read_csv(self.rule_path)
         self.read_rules(self.rule_path, active_rules)
-
 
     def set_output_smarts(self, output_smarts):
         """Determine whether SMARTS are returned
@@ -105,22 +102,15 @@ class REOS:
         return self.active_rule_df.rule_set_name.unique()
 
     def drop_rule(self, description: str) -> None:
-        """
-        Drops a rule from the active rule set based on its description.
+        """Drops a rule from the active rule set based on its description.
 
-        Parameters
-        ----------
-        description : str
-            The description of the rule to be dropped.
-
-        Returns
-        -------
-        None
+        :param: description: The description of the rule to be dropped.
+        :return: None
         """
         num_rules_before = len(self.active_rule_df)
         self.active_rule_df = self.active_rule_df.query("description != @description")
         num_rules_after = len(self.active_rule_df)
-        print(f"Dropped {num_rules_before - num_rules_after} rules")
+        print(f"Dropped {num_rules_before - num_rules_after} rule(s)")
 
     def get_rule_file_location(self):
         """Get the path to the rules file as a Path
@@ -160,3 +150,33 @@ class REOS:
             print(f"Error parsing SMILES {smiles}")
             return None
         return self.process_mol(mol)
+
+    def pandas_smiles(self, smiles_list: List[str]) -> pd.DataFrame:
+        """Process a list of SMILES strings
+
+        :param smiles_list: list of SMILES strings
+        :return: a pandas DataFrame with the results
+        """
+        results = []
+        for smiles in tqdm(smiles_list):
+            results.append(self.process_smiles(smiles))
+        if self.output_smarts:
+            column_names = ['rule_set_name', 'description', 'smarts']
+        else:
+            column_names = ['rule_set_name', 'description']
+        return pd.DataFrame(results, columns=column_names)
+
+    def pandas_mols(self, mol_list: List[Mol]) -> pd.DataFrame:
+        """Process a list of RDKit molecules
+
+        :param mol_list: list of RDKit molecules
+        :return: a pandas DataFrame with the results
+        """
+        results = []
+        for mol in tqdm(mol_list):
+            results.append(self.process_mol(mol))
+        if self.output_smarts:
+            column_names = ['rule_set_name', 'description', 'smarts']
+        else:
+            column_names = ['rule_set_name', 'description']
+        return pd.DataFrame(results, columns=column_names)
