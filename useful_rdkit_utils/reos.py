@@ -74,9 +74,9 @@ class REOS:
             print("Error reading rules, please fix the SMARTS errors reported above", file=sys.stderr)
             sys.exit(1)
         if active_rules is not None:
-            self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules")
+            self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
         else:
-            self.active_rule_df = self.rule_df
+            self.active_rule_df = self.rule_df.copy()
 
     def set_active_rule_sets(self, active_rules=None):
         """Set the active rule set(s)
@@ -86,6 +86,17 @@ class REOS:
         """
         assert active_rules
         self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules")
+
+    def set_min_priority(self, min_priority: int) -> None:
+        """Set the minimum priority for rules to be included in the active rule set.
+
+        :param min_priority: The minimum priority for rules to be included.
+        :return: None
+        """
+        # reset active_rule_df
+        self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
+        # filter to only include rules with priority greater than or equal to min_priority
+        self.active_rule_df = self.active_rule_df.query("priority >= @min_priority")
 
     def get_available_rule_sets(self):
         """Get the available rule sets in rule_df
