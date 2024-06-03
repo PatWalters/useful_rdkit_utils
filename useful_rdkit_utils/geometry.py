@@ -5,6 +5,7 @@ import py3Dmol
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Descriptors3D import NPR1, NPR2
+from rdkit.Chem.rdFMCS import FindMCS
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.Chem.rdchem import Mol
 
@@ -59,6 +60,29 @@ def gen_conformers(mol, num_confs=10):
     except ValueError:
         mol = None
     return mol
+
+
+def mcs_rmsd(mol_1: Mol, mol_2: Mol) -> float:
+    """
+    Calculate the minimum Root Mean Square Deviation (RMSD) between the Maximum Common Substructure (MCS)
+    of two RDKit molecule objects.
+
+    :param mol_1: The first RDKit molecule object.
+    :param mol_2: The second RDKit molecule object.
+    :return: The minimum RMSD as a float.
+    """
+    mcs_res = FindMCS([mol_1, mol_2])
+    pat = Chem.MolFromSmarts(mcs_res.smartsString)
+    match_1 = mol_1.GetSubstructMatches(pat)
+    match_2 = mol_2.GetSubstructMatches(pat)
+    min_rmsd = 1e6
+    for m1 in match_1:
+        for m2 in match_2:
+            crd_1 = mol_1.GetConformer(0).GetPositions()[list(m1)]
+            crd_2 = mol_2.GetConformer(0).GetPositions()[list(m2)]
+            rmsd = np.sqrt((((crd_1 - crd_2) ** 2).sum()).mean())
+            min_rmsd = min(min_rmsd, rmsd)
+    return min_rmsd
 
 
 # from https://birdlet.github.io/2019/10/02/py3dmol_example/
