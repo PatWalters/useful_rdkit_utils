@@ -12,5 +12,6 @@ from .geometry import *
 from .descriptors import *
 from .jupyter_utils import *
 from .reactions import *
+from .split_utils import *
 
-__version__ = "0.51"
+__version__ = "0.52"
