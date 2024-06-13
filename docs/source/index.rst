@@ -10,6 +10,7 @@ useful_rdkit_utils |release| Documentation
    reos
    ring_systems
    descriptors
+   split_utils
    reactions
    geometry
    misc_utils
