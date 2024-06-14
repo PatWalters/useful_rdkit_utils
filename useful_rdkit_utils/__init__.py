@@ -14,4 +14,4 @@ from .jupyter_utils import *
 from .reactions import *
 from .split_utils import *
 
-__version__ = "0.54"
+__version__ = "0.55"

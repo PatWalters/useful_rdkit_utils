@@ -57,7 +57,7 @@ def get_scaffold(smi: Union[str, Mol]) -> str:
     return scaffold
 
 
-def simple_random_split(smiles_list: List[str]) -> List[int]:
+def get_random_split(smiles_list: List[str]) -> List[int]:
     """
     Generate a list of integers from 0 to the length of the input list.
 
@@ -67,15 +67,16 @@ def simple_random_split(smiles_list: List[str]) -> List[int]:
     return list(range(0, len(smiles_list)))
 
 
-def get_butina_clusters(smiles_list: List[str]) -> List[int]:
+def get_butina_clusters(smiles_list: List[str], cutoff: float = 0.35) -> List[int]:
     """
     Cluster a list of SMILES strings using the Butina clustering algorithm.
 
     :param smiles_list: List of SMILES strings
+    :param cutoff: The cutoff value to use for clustering
     :return: List of cluster labels corresponding to each SMILES string in the input list.
     """
     fp_list = [smi2morgan_fp(x) for x in smiles_list]
-    return taylor_butina_clustering(fp_list)
+    return taylor_butina_clustering(fp_list, cutoff=cutoff)
 
 
 def get_bemis_murcko_clusters(smiles_list: List[str]) -> np.ndarray:
@@ -90,15 +91,15 @@ def get_bemis_murcko_clusters(smiles_list: List[str]) -> np.ndarray:
     return factorized_values
 
 
-def get_kmeans_clusters(smiles_list: List[str]) -> np.ndarray:
+def get_kmeans_clusters(smiles_list: List[str], n_clusters: int = 10) -> np.ndarray:
     """
     Cluster a list of SMILES strings using the KMeans clustering algorithm.
 
     :param smiles_list: List of SMILES strings
+    :param n_clusters: The number of clusters to use for clustering
     :return: Array of cluster labels corresponding to each SMILES string in the input list.
     """
-    num_clusters = int(len(smiles_list) / 3.0)
-    km = KMeans(n_clusters=num_clusters)
+    km = KMeans(n_clusters=n_clusters, n_init='auto')
     fp_list = [smi2numpy_fp(x) for x in smiles_list]
     return km.fit_predict(np.stack(fp_list))
 
