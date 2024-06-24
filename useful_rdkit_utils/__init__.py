@@ -13,5 +13,6 @@ from .descriptors import *
 from .jupyter_utils import *
 from .reactions import *
 from .split_utils import *
+from .scaffold_finder import *
 
-__version__ = "0.55"
+__version__ = "0.56"
