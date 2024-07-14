@@ -1,5 +1,5 @@
 click
-numpy
+numpy<2.0
 py3DMol
 pytest
 jupyter
