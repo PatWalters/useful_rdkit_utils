@@ -50,11 +50,11 @@ def get_largest_fragment(mol: Mol) -> Mol:
 
 # ----------- Clustering
 #https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GroupShuffleSplit.html
-def taylor_butina_clustering(fp_list: List[DataStructs.ExplicitBitVect], cutoff: float = 0.35) -> List[int]:
+def taylor_butina_clustering(fp_list: List[DataStructs.ExplicitBitVect], cutoff: float = 0.65) -> List[int]:
     """Cluster a set of fingerprints using the RDKit Taylor-Butina implementation
 
     :param fp_list: a list of fingerprints
-    :param cutoff: similarity cutoff
+    :param cutoff: distance cutoff (1 - Tanimoto similarity)
     :return: a list of cluster ids
     """
     dists = []

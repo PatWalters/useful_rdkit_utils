@@ -3,7 +3,9 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from rdkit import Chem
 from rdkit.Chem.Scaffolds.MurckoScaffold import MurckoScaffoldSmiles
+from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem.rdchem import Mol
 from sklearn.cluster import KMeans
 from sklearn.model_selection._split import _BaseKFold
@@ -67,7 +69,7 @@ def get_random_split(smiles_list: List[str]) -> List[int]:
     return list(range(0, len(smiles_list)))
 
 
-def get_butina_clusters(smiles_list: List[str], cutoff: float = 0.35) -> List[int]:
+def get_butina_clusters(smiles_list: List[str], cutoff: float = 0.65) -> List[int]:
     """
     Cluster a list of SMILES strings using the Butina clustering algorithm.
 
@@ -75,7 +77,9 @@ def get_butina_clusters(smiles_list: List[str], cutoff: float = 0.35) -> List[in
     :param cutoff: The cutoff value to use for clustering
     :return: List of cluster labels corresponding to each SMILES string in the input list.
     """
-    fp_list = [smi2morgan_fp(x) for x in smiles_list]
+    mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
+    fg = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
+    fp_list = [fg.GetFingerprint(x) for x in mol_list]
     return taylor_butina_clustering(fp_list, cutoff=cutoff)
 
 
