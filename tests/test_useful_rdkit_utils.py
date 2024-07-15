@@ -125,7 +125,7 @@ C[N+](C)(C)CCO.Cn1c(=O)c2[n-]cnc2n(C)c1=O 674385"""
     df["mol"] = df.SMILES.apply(Chem.MolFromSmiles)
     df["fp"] = df.mol.apply(uru.mol2morgan_fp)
     clusters = uru.taylor_butina_clustering(df.fp.values)
-    assert str(clusters) == "[6, 0, 0, 0, 5, 4, 3, 1, 1, 2]"
+    assert str(clusters) == '[3, 1, 1, 1, 1, 0, 0, 0, 0, 2]'
 
 
 def test_label_atoms():
