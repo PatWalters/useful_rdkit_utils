@@ -95,15 +95,18 @@ def apply_func(name, mol):
 class RDKitDescriptors:
     """ Calculate RDKit descriptors"""
 
-    def __init__(self: "RDKitDescriptors") -> None:
+    def __init__(self: "RDKitDescriptors", hide_progress: bool = False) -> None:
         """
         Initialize the RDKitDescriptors class.
 
         :param self: An instance of the RDKitDescriptors class
         :type self: RDKitDescriptors
+        :param hide_progress: Flag to hide progress bar
+        :type hide_progress: bool
         :return: None
         :rtype: None
         """
+        self.hide_progress = hide_progress
         self.desc_names: List[str] = [desc_name for desc_name, _ in sorted(Descriptors.descList)]
 
     def calc_mol(self, mol: Mol) -> np.ndarray:
@@ -135,7 +138,7 @@ class RDKitDescriptors:
         :return: DataFrame with calculated descriptors. Each row corresponds to a SMILES string and each column to a descriptor.
         """
         desc_list = []
-        for smi in tqdm(smiles_list):
+        for smi in tqdm(smiles_list, disable=self.hide_progress):
             desc_list.append(self.calc_smiles(smi))
         df = pd.DataFrame(desc_list, columns=self.desc_names)
         return df
@@ -148,7 +151,7 @@ class RDKitDescriptors:
         :return: DataFrame with calculated descriptors. Each row corresponds to a molecule and each column to a descriptor.
         """
         desc_list = []
-        for mol in tqdm(mol_list):
+        for mol in tqdm(mol_list, disable=self.hide_progress):
             desc_list.append(self.calc_mol(mol))
         df = pd.DataFrame(desc_list, columns=self.desc_names)
         return df
