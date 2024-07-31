@@ -11,6 +11,7 @@ from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
 from rdkit.Chem.rdchem import Mol
 from tqdm.auto import tqdm
+import warnings
 
 
 # ----------- Descriptors and fingerprints
@@ -116,7 +117,9 @@ class RDKitDescriptors:
         :return: a numpy array with descriptors
         """
         if mol is not None:
-            res = np.array([apply_func(name, mol) for name in self.desc_names], dtype=float)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=DeprecationWarning)
+                res = np.array([apply_func(name, mol) for name in self.desc_names], dtype=float)
         else:
             res = np.array([None] * len(self.desc_names))
         return res

@@ -15,4 +15,4 @@ from .reactions import *
 from .split_utils import *
 from .scaffold_finder import *
 
-__version__ = "0.61"
+__version__ = "0.62"
