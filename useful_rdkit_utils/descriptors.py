@@ -11,7 +11,8 @@ from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
 from rdkit.Chem.rdchem import Mol
 from tqdm.auto import tqdm
-import warnings
+from rdkit import RDLogger
+
 
 
 # ----------- Descriptors and fingerprints
@@ -74,25 +75,6 @@ def smi2numpy_fp(smi: str, radius: int = 2, nBits: int = 2048) -> np.ndarray:
     return arr
 
 
-# Code borrowed from Brian Kelley's Descriptastorus
-# https://github.com/bp-kelley/descriptastorus
-FUNCS = {name: func for name, func in Descriptors.descList}
-
-
-def apply_func(name, mol):
-    """Apply an RDKit descriptor calculation to a molecule
-
-    :param name: descriptor name
-    :param mol: RDKit molecule
-    :return:
-    """
-    try:
-        return FUNCS[name](mol)
-    except:
-        logging.exception("function application failed (%s->%s)", name, Chem.MolToSmiles(mol))
-        return None
-
-
 class RDKitDescriptors:
     """ Calculate RDKit descriptors"""
 
@@ -108,7 +90,7 @@ class RDKitDescriptors:
         :rtype: None
         """
         self.hide_progress = hide_progress
-        self.desc_names: List[str] = [desc_name for desc_name, _ in sorted(Descriptors.descList)]
+        self.desc_names: List[str] = sorted([x[0] for x in Descriptors.descList])
 
     def calc_mol(self, mol: Mol) -> np.ndarray:
         """Calculate descriptors for an RDKit molecule
@@ -117,9 +99,10 @@ class RDKitDescriptors:
         :return: a numpy array with descriptors
         """
         if mol is not None:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=DeprecationWarning)
-                res = np.array([apply_func(name, mol) for name in self.desc_names], dtype=float)
+            RDLogger.DisableLog('rdApp.warning')
+            res_dict = Descriptors.CalcMolDescriptors(mol)
+            RDLogger.EnableLog('rdApp.warning')
+            res = np.array([res_dict[x] for x in self.desc_names])
         else:
             res = np.array([None] * len(self.desc_names))
         return res
