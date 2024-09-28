@@ -4,14 +4,15 @@ from typing import Union
 import numpy as np
 import pandas as pd
 from rdkit import Chem
-from rdkit.Chem.Scaffolds.MurckoScaffold import MurckoScaffoldSmiles
 from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem.Scaffolds.MurckoScaffold import MurckoScaffoldSmiles
 from rdkit.Chem.rdchem import Mol
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import KMeans
 from sklearn.model_selection._split import _BaseKFold
 from tqdm.auto import tqdm
 
-from .descriptors import smi2morgan_fp, smi2numpy_fp
+from .descriptors import smi2numpy_fp
 from .misc_utils import taylor_butina_clustering
 
 
@@ -59,7 +60,7 @@ def get_scaffold(smi: Union[str, Mol]) -> str:
     return scaffold
 
 
-def get_random_split(smiles_list: List[str]) -> List[int]:
+def get_random_clusters(smiles_list: List[str]) -> List[int]:
     """
     Generate a list of integers from 0 to the length of the input list.
 
@@ -67,6 +68,22 @@ def get_random_split(smiles_list: List[str]) -> List[int]:
     :return: A list of integers from 0 to the length of the input list.
     """
     return list(range(0, len(smiles_list)))
+
+
+def get_umap_clusters(smiles_list: List[str], n_clusters: int = 10) -> np.ndarray:
+    """
+    Cluster a list of SMILES strings using the KMeans clustering algorithm.
+
+    :param smiles_list: List of SMILES strings
+    :param n_clusters: The number of clusters to use for clustering
+    :return: Array of cluster labels corresponding to each SMILES string in the input list.
+    """
+    fp_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
+    ac = AgglomerativeClustering(n_clusters=n_clusters)
+    mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
+    fp_list = [fp_gen.GetFingerprintAsNumPy(x) for x in mol_list]
+    ac.fit_predict(np.stack(fp_list))
+    return ac.labels_
 
 
 def get_butina_clusters(smiles_list: List[str], cutoff: float = 0.65) -> List[int]:
@@ -109,44 +126,54 @@ def get_kmeans_clusters(smiles_list: List[str], n_clusters: int = 10) -> np.ndar
 
 
 def cross_validate(df: pd.DataFrame,
-                   model_list: List[Tuple[str, Callable]],
+                   model_list: List[Tuple[str, Callable[[str], object]]],
                    y_col: str,
-                   descriptor_list: List[Tuple[str, Callable]],
-                   group_list: List[Tuple[str, Callable]],
-                   metric_list: List[Tuple[str, Callable]],
+                   group_list: List[Tuple[str, Callable[[pd.Series], pd.Series]]],
                    n_outer: int = 5,
                    n_inner: int = 5) -> List[dict]:
     """
-    Perform cross-validation on a given dataset.
+    Perform cross-validation on a dataset using multiple models and grouping strategies.
 
-    :param df: The input pandas DataFrame.
-    :param model_list: A list of tuples where each tuple contains a model name and a function to create the model.
-    :param y_col: The name of the target column in the DataFrame.
-    :param descriptor_list: A list of tuples where each tuple contains a descriptor name and a function to calculate the descriptor.
-    :param group_list: A list of tuples where each tuple contains a group name and a function to calculate the group.
-    :param metric_list: A list of tuples where each tuple contains a metric name and a function to calculate the metric.
-    :param n_outer: The number of outer folds for cross-validation.
-    :param n_inner: The number of inner folds for cross-validation.
-    :return: A list of dictionaries where each dictionary contains the results for one fold of the cross-validation.
+    :param df: The input dataframe containing the data.
+    :type df: pd.DataFrame
+    :param model_list: A list of tuples where each tuple contains a model name and a callable that returns a model instance.
+    :type model_list: List[Tuple[str, Callable[[str], object]]]
+    :param y_col: The name of the target column.
+    :type y_col: str
+    :param group_list: A list of tuples where each tuple contains a group name and a callable that assigns groups based on the SMILES column.
+    :type group_list: List[Tuple[str, Callable[[pd.Series], pd.Series]]]
+    :param n_outer: The number of outer folds for cross-validation. Default is 5.
+    :type n_outer: int
+    :param n_inner: The number of inner folds for cross-validation. Default is 5.
+    :type n_inner: int
+    :return: A list of dictionaries containing the metric values for each fold, model, and group.
+    :rtype: List[dict]
     """
     metric_vals = []
+    fold_df_list = []
+    input_cols = df.columns
     for i in tqdm(range(0, n_outer), leave=False):
         kf = GroupKFoldShuffle(n_splits=n_inner, shuffle=True)
         for group_name, group_func in group_list:
+            # assign groups based on cluster, scaffold, etc
             current_group = group_func(df.SMILES)
             for j, [train_idx, test_idx] in enumerate(
-                    tqdm(kf.split(df, groups=current_group), total=n_inner, leave=False)):
+                    tqdm(kf.split(df, groups=current_group), total=n_inner, desc=group_name, leave=False)):
+                fold = i * n_outer + j
                 train = df.iloc[train_idx].copy()
                 test = df.iloc[test_idx].copy()
-                for descriptor_name, descriptor_func in descriptor_list:
-                    descriptor_func(descriptor_name, train, test)
-                    for model_name, model_func in model_list:
-                        model = model_func()
-                        model.fit(np.stack(train[descriptor_name]), train[y_col])
-                        pred = model.predict(np.stack(test[descriptor_name]))
-                        fold = i * n_outer + j
-                        metric_dict = {'group': group_name, 'model': model_name, 'desc': descriptor_name, 'fold': fold}
-                        for metric_name, metric_func in metric_list:
-                            metric_dict[metric_name] = metric_func(test[y_col], pred)
-                        metric_vals.append(metric_dict)
-    return metric_vals
+
+                train['dset'] = 'train'
+                test['dset'] = 'test'
+                train['group'] = group_name
+                test['group'] = group_name
+                train['fold'] = fold
+                test['fold'] = fold
+
+                for model_name, model_class in model_list:
+                    model = model_class(y_col)
+                    pred = model.validate(train, test)
+                    test[model_name] = pred
+                fold_df_list.append(pd.concat([train, test]))
+    output_cols = list(input_cols) + ['dset', 'group', 'fold'] + [x[0] for x in model_list]
+    return pd.concat(fold_df_list)[output_cols]
