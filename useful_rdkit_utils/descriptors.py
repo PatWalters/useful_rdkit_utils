@@ -1,18 +1,17 @@
-import logging
 from typing import List, Optional, Callable
 
 import numpy as np
 import pandas as pd
 from rdkit import Chem
 from rdkit import DataStructs
+from rdkit import RDLogger
 from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
 from rdkit.Chem.rdchem import Mol
 from tqdm.auto import tqdm
-from rdkit import RDLogger
-
 
 
 # ----------- Descriptors and fingerprints
@@ -26,6 +25,50 @@ def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.E
     """
     fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nBits)
     return fp
+
+
+class Smi2Fp:
+    def __init__(self):
+        self.fpgen = rdFingerprintGenerator.GetMorganGenerator()
+
+    def get_np(self, smiles):
+        """
+        Convert a SMILES string to a numpy array with Morgan fingerprint bits.
+
+        :param smiles: SMILES string
+        :return: numpy array with Morgan fingerprint bits
+        """
+        mol = Chem.MolFromSmiles(smiles)
+        fp = None
+        if mol:
+            fp = self.fpgen.GetFingerprintAsNumPy(mol)
+        return fp
+
+    def get_np_counts(self, smiles):
+        """
+        Convert a SMILES string to a numpy array with Morgan fingerprint counts.
+
+        :param smiles: SMILES string
+        :return: numpy array with Morgan fingerprint counts
+        """
+        mol = Chem.MolFromSmiles(smiles)
+        fp = None
+        if mol:
+            fp = self.fpgen.GetCountFingerprintAsNumPy(mol)
+        return fp
+
+    def get_fp(self, smiles):
+        """
+        Convert a SMILES string to a Morgan fingerprint.
+
+        :param smiles: SMILES string
+        :return: Morgan fingerprint
+        """
+        mol = Chem.MolFromSmiles(smiles)
+        fp = None
+        if mol:
+            fp = self.fpgen.GetFingerprint(mol)
+        return fp
 
 
 def smi2morgan_fp(smi: str, radius: int = 2, nBits: int = 2048) -> Optional[DataStructs.ExplicitBitVect]:

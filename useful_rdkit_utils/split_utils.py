@@ -70,9 +70,13 @@ def get_random_clusters(smiles_list: List[str]) -> List[int]:
     return list(range(0, len(smiles_list)))
 
 
-def get_umap_clusters(smiles_list: List[str], n_clusters: int = 10) -> np.ndarray:
+def get_umap_clusters(smiles_list: List[str], n_clusters: int = 7) -> np.ndarray:
     """
-    Cluster a list of SMILES strings using the KMeans clustering algorithm.
+    Cluster a list of SMILES strings using the umap clustering algorithm.
+    From Scaffold Splits Overestimate Virtual Screening Performance
+    https://arxiv.org/abs/2406.00873
+
+
 
     :param smiles_list: List of SMILES strings
     :param n_clusters: The number of clusters to use for clustering
@@ -135,19 +139,12 @@ def cross_validate(df: pd.DataFrame,
     Perform cross-validation on a dataset using multiple models and grouping strategies.
 
     :param df: The input dataframe containing the data.
-    :type df: pd.DataFrame
     :param model_list: A list of tuples where each tuple contains a model name and a callable that returns a model instance.
-    :type model_list: List[Tuple[str, Callable[[str], object]]]
     :param y_col: The name of the target column.
-    :type y_col: str
     :param group_list: A list of tuples where each tuple contains a group name and a callable that assigns groups based on the SMILES column.
-    :type group_list: List[Tuple[str, Callable[[pd.Series], pd.Series]]]
     :param n_outer: The number of outer folds for cross-validation. Default is 5.
-    :type n_outer: int
     :param n_inner: The number of inner folds for cross-validation. Default is 5.
-    :type n_inner: int
-    :return: A list of dictionaries containing the metric values for each fold, model, and group.
-    :rtype: List[dict]
+    :return: A dataframe containing the metric values for each fold, model, and group.
     """
     metric_vals = []
     fold_df_list = []
