@@ -15,16 +15,6 @@ from tqdm.auto import tqdm
 
 
 # ----------- Descriptors and fingerprints
-def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.ExplicitBitVect:
-    """Convert an RDKit molecule to a Morgan fingerprint
-
-    :param mol: RDKit molecule
-    :param radius: fingerprint radius
-    :param nBits: number of fingerprint bits
-    :return: RDKit Morgan fingerprint
-    """
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nBits)
-    return fp
 
 
 class Smi2Fp:
@@ -69,6 +59,18 @@ class Smi2Fp:
         if mol:
             fp = self.fpgen.GetFingerprint(mol)
         return fp
+
+
+def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.ExplicitBitVect:
+    """Convert an RDKit molecule to a Morgan fingerprint
+
+    :param mol: RDKit molecule
+    :param radius: fingerprint radius
+    :param nBits: number of fingerprint bits
+    :return: RDKit Morgan fingerprint
+    """
+    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nBits)
+    return fp
 
 
 def smi2morgan_fp(smi: str, radius: int = 2, nBits: int = 2048) -> Optional[DataStructs.ExplicitBitVect]:
