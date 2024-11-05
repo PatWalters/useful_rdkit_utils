@@ -20,7 +20,7 @@ class RingSystemFinder:
     def __init__(self):
         """Initialize susbstructure search objects to identify key functionality
         """
-        self.ring_db_pat = Chem.MolFromSmarts("[#6R,#18R]=[OR0,SR0,CR0,NR0]")
+        self.ring_db_pat = Chem.MolFromSmarts("[#6R,#16R]=[OR0,SR0,CR0,NR0]")
         self.ring_atom_pat = Chem.MolFromSmarts("[R]")
 
     def tag_bonds_to_preserve(self, mol):
