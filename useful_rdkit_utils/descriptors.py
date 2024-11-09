@@ -18,8 +18,8 @@ from tqdm.auto import tqdm
 
 
 class Smi2Fp:
-    def __init__(self):
-        self.fpgen = rdFingerprintGenerator.GetMorganGenerator()
+    def __init__(self, radius: int = 3, fpSize: int = 2048):
+        self.fpgen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fpSize)
 
     def get_np(self, smiles):
         """
