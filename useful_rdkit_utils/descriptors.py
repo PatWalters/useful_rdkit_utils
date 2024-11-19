@@ -63,6 +63,10 @@ class Smi2Fp:
 
 def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.ExplicitBitVect:
     """Convert an RDKit molecule to a Morgan fingerprint
+    To avoid the rdkit deprecated warning, do this
+    from rdkit import rdBase
+    with rdBase.BlockLogs():
+        uru.smi2numpy_fp("CCC")
 
     :param mol: RDKit molecule
     :param radius: fingerprint radius
@@ -75,6 +79,10 @@ def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.E
 
 def smi2morgan_fp(smi: str, radius: int = 2, nBits: int = 2048) -> Optional[DataStructs.ExplicitBitVect]:
     """Convert a SMILES to a Morgan fingerprint
+    To avoid the rdkit deprecated warning, do this
+    from rdkit import rdBase
+    with rdBase.BlockLogs():
+        uru.smi2numpy_fp("CCC")
 
     :param smi: SMILES
     :param radius: fingerprint radius
