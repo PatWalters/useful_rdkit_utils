@@ -131,7 +131,7 @@ def smi2numpy_fp(smi: str, radius: int = 2, nBits: int = 2048) -> np.ndarray:
 class RDKitDescriptors:
     """ Calculate RDKit descriptors"""
 
-    def __init__(self: "RDKitDescriptors", hide_progress: bool = False) -> None:
+    def __init__(self: "RDKitDescriptors", hide_progress: bool = False, skip_fragments=False) -> None:
         """
         Initialize the RDKitDescriptors class.
 
@@ -139,11 +139,15 @@ class RDKitDescriptors:
         :type self: RDKitDescriptors
         :param hide_progress: Flag to hide progress bar
         :type hide_progress: bool
+        :param skip_fragments: Flag to skip fragment descriptors
+        :type skip_fragments: bool
         :return: None
         :rtype: None
         """
         self.hide_progress = hide_progress
         self.desc_names: List[str] = sorted([x[0] for x in Descriptors.descList])
+        if skip_fragments:
+            self.desc_names = [x for x in self.desc_names if "fr_" not in x]
 
     def calc_mol(self, mol: Mol) -> np.ndarray:
         """Calculate descriptors for an RDKit molecule
