@@ -27,13 +27,16 @@ copyright = f'{date.today().year}, Pat Walters'
 author = 'Pat Walters'
 
 # The full version, including alpha/beta/rc tags.
-release = '0.74'
+release = '0.74.0'
+
 
 # The short X.Y version.
 parsed_version = re.match(
     '(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?',
     release,
 )
+
+
 version = parsed_version.expand('\g<major>.\g<minor>.\g<patch>')
 
 if parsed_version.group('release'):
