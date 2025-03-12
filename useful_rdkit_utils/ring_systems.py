@@ -109,7 +109,7 @@ def test_ring_system_finder():
     """A quick test for the RingSystemFinder class
     :return: None
     """
-    mol = Chem.MolFromSmiles("CC(=O)[O-].CCn1c(=O)/c(=C2\Sc3ccccc3N2C)s/c1=C\C1CCC[n+]2c1sc1ccccc12")
+    mol = Chem.MolFromSmiles(r"CC(=O)[O-].CCn1c(=O)/c(=C2\Sc3ccccc3N2C)s/c1=C\C1CCC[n+]2c1sc1ccccc12")
     ring_system_finder = RingSystemFinder()
     ring_system_finder.find_ring_systems(mol)
 
