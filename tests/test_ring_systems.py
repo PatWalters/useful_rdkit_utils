@@ -24,7 +24,8 @@ O=C1O[C@H]2/C=C\CCC[C@H]3C=CCC[C@@H]3C[C@@]23O[C@@H]13,UPDVKQFEWFYNLP-FOQDBRFFSA
     expected_df = pd.read_csv(string_fs)
 
     url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/test.smi"
-    uru.create_ring_dictionary("test_chemreps.txt", "ring_test.csv")
+    chemreps_url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/refs/heads/master/tests/test_chemreps.txt"
+    uru.create_ring_dictionary(chemreps_url, "ring_test.csv")
     test_df = pd.read_csv("ring_test.csv")
     pd.testing.assert_frame_equal(test_df, expected_df)
 
