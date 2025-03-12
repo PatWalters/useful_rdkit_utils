@@ -29,7 +29,9 @@ O=C1O[C@H]2/C=C\CCC[C@H]3C=CCC[C@@H]3C[C@@]23O[C@@H]13,UPDVKQFEWFYNLP-FOQDBRFFSA
     uru.create_ring_dictionary(chemreps_url, "ring_test.csv")
     test_df = pd.read_csv("ring_test.csv")
     test_df.sort_values(["SMILES","InChI"],inplace=True)
+    test_df.reset_index(drop=True,inplace=True)
     expected_df.sort_values(["SMILES","InChI"],inplace=True)
+    expected_df.reset_index(drop=True,inplace=True)
     pd.testing.assert_frame_equal(test_df, expected_df)
 
 
