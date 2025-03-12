@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 import itertools
 import sys
-from dataclasses import dataclass
-from importlib import resources
 from operator import itemgetter
-from pathlib import Path
 
 import click
 import pandas as pd
 import pystow
 from rdkit import Chem
+from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem.rdMolDescriptors import CalcNumRings
 from tqdm.auto import tqdm
 
@@ -116,17 +114,17 @@ def test_ring_system_finder():
     ring_system_finder.find_ring_systems(mol)
 
 
-def create_ring_dictionary(input_smiles, output_csv):
-    """Read a SMILES file, extract ring systems, write out ring systems and frequency
-    :param input_smiles: input SMILES file
+def create_ring_dictionary(input_chemreps, output_csv):
+    """Read the ChEMBL chemreps.txt file, extract ring systems, write out ring systems and frequency
+    :param input_chemreps: ChEMBL chemreps file
     :param output_csv: output csv file
     :return: None
     """
     ring_system_finder = RingSystemFinder()
-    df = pd.read_csv(input_smiles, sep=" ", names=["SMILES", "Name"])
+    df = pd.read_csv(input_chemreps, sep="\t")
     ring_system_output_list = []
     inchi_smi_dict = {}
-    for smi in tqdm(df.SMILES):
+    for smi in tqdm(df.canonical_smiles):
         mol = Chem.MolFromSmiles(smi)
         if mol is None:
             continue
@@ -143,68 +141,41 @@ def create_ring_dictionary(input_smiles, output_csv):
     df_out['SMILES'] = [inchi_smi_dict.get(x) for x in df_out.InChI]
     df_out[['SMILES', 'InChI', 'Count']].to_csv(output_csv, index=False)
 
+    df_no_stereo_out = generate_no_stereo_ring_systems(df_out)
+    df_no_stereo_out.to_csv(output_csv.replace(".csv", "_no_stereo.csv"), index=False)
 
-@dataclass(frozen=True, slots=True)
+
 class RingSystemLookup:
     """Lookup ring systems from a dictionary of rings and frequencies"""
-    ring_dict: dict[str, int]
-    ring_system_finder: RingSystemFinder
 
-    @classmethod
-    def default(cls):
-        ring_df = cls._read_file(None)
-        return cls(
-            dict(ring_df[["InChI", "Count"]].values),
-            RingSystemFinder()
-        )
+    def __init__(self, ring_file=None, ignore_stereo=False):
+        ring_csv_name = "chembl_ring_systems.csv"
+        if ignore_stereo:
+            ring_csv_name = ring_csv_name.replace(".csv", "_no_stereo.csv")
+        if ring_file is None:
+            url = f'https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/refs/heads/master/data/{ring_csv_name}'
+            self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
+        else:
+            self.rule_path = ring_file
+        self.ignore_stereo = ignore_stereo
+        self.ring_df = pd.read_csv(self.rule_path)
+        self.ring_dict = dict(self.ring_df[["InChI", "Count"]].values)
+        self.ring_system_finder = RingSystemFinder()
+        self.enumerator = rdMolStandardize.TautomerEnumerator()
 
-    @classmethod
-    def from_file(cls, path: Path | str = None):
-        ring_df = cls._read_file(path)
-        return cls(
-            dict(ring_df[["InChI", "Count"]].values),
-            RingSystemFinder()
-        )
-
-    @classmethod
-    def _read_file(cls, path: Path | str | None = None) -> pd.DataFrame:
-        """
-        Initialize the lookup table
-        :param path: csv file with ring smiles and frequency
-        """
-        if path is None:
-            with (
-                    resources.files("useful_rdkit_utils")
-                            .joinpath("data")
-                            .joinpath("ring_systems")
-                            .joinpath("chembl_ring_systems.parquet")
-                            .open("rb")
-            ) as f:
-                return pd.read_parquet(f)
-        if isinstance(path, str) and path.startswith("https://"):
-            path = pystow.ensure('useful_rdkit_utils', 'data', url=path)
-        path = Path(path)
-        if any(path.name.endswith(".csv" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
-            return pd.read_csv(path)
-        if any(path.name.endswith(".tsv" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
-            return pd.read_table(path)
-        if any(path.name.endswith(".tab" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
-            return pd.read_table(path)
-        if any(path.name.endswith(".json" + c) for c in ["", ".gz", ".br", ".xz", ".zst"]):
-            return pd.read_json(path)
-        if path.suffix in {".parquet", ".snappy"}:
-            return pd.read_parquet(path)
-        if path.suffix in {".arrow", ".feather"}:
-            return pd.read_feather(path)
-
-    def process_mol(self, mol):
+    def process_mol(self, mol_in):
         """
         find ring systems in an RDKit molecule
-        :param mol: input molecule
+        :param mol_in: input molecule
         :return: list of SMILES for ring systems
         """
+        #mol = self.enumerator.Canonicalize(mol_in)
+        mol = mol_in
+        # mol = mol_in
         output_ring_list = []
         if mol:
+            if self.ignore_stereo:
+                Chem.RemoveStereochemistry(mol)
             ring_system_list = self.ring_system_finder.find_ring_systems(mol, as_mols=True)
             for ring in ring_system_list:
                 smiles = Chem.MolToSmiles(ring)
@@ -224,6 +195,22 @@ class RingSystemLookup:
         if mol:
             res = self.process_mol(mol)
         return res
+
+    def pandas_smiles_list(self, smiles_list):
+        """
+        find ring systems from a list of SMILES
+        :param smiles_list: list of SMILES
+        :return: dataframe with ring information
+        """
+        res = []
+        for smi in tqdm(smiles_list):
+            res.append(self.process_smiles(smi))
+        res_df = pd.DataFrame()
+        res_df["ring_systems"] = res
+        freq_data = res_df.ring_systems.apply(get_min_ring_frequency)
+        res_df["min_ring"] = [x[0] for x in freq_data]
+        res_df["min_freq"] = [x[1] for x in freq_data]
+        return res_df
 
 
 def test_ring_system_lookup(input_filename, output_filename):
@@ -256,9 +243,32 @@ def get_min_ring_frequency(ring_list):
         return ["", -1]
 
 
+def remove_stereo_from_smiles(smi_in):
+    mol = Chem.MolFromSmiles(smi_in)
+    smi_out = None
+    inchi_key = None
+    if mol:
+        Chem.RemoveStereochemistry(mol)
+        smi_out = Chem.MolToSmiles(mol)
+        inchi_key = Chem.MolToInchiKey(mol)
+    return smi_out, inchi_key
+
+
+def generate_no_stereo_ring_systems(df):
+    tqdm.pandas()
+    df[["no_stereo_smiles", "no_stereo_inchi"]] = df.SMILES.progress_apply(remove_stereo_from_smiles).to_list()
+    res = []
+    for k, v in tqdm(df.groupby("no_stereo_inchi")):
+        res.append([v.no_stereo_smiles.values[0], k, v.Count.sum()])
+    no_stereo_ring_df = pd.DataFrame(res, columns=["SMILES", "InChI", "Count"])
+    no_stereo_ring_df.sort_values("Count", ascending=False, inplace=True)
+    df.drop(["no_stereo_smiles", "no_stereo_inchi"], axis=1, inplace=True)
+    return no_stereo_ring_df
+
+
 @click.command()
 @click.option("--mode", prompt="mode [build|search]", help="[build|search]")
-@click.option("--infile", prompt="Input csv file", help="input file")
+@click.option("--infile", prompt="Input chemreps file", help="input file")
 @click.option("--outfile", prompt="Output csv file", help="output file")
 def main(mode, infile, outfile):
     mode_list = ["build", "search"]

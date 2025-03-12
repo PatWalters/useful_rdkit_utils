@@ -1,11 +1,16 @@
+import base64
+import io
 import sys
 from io import StringIO
 from operator import itemgetter
 from typing import List
 from typing import Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from rdkit import Chem, DataStructs, RDLogger
+from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.rdchem import Mol
 from rdkit.ML.Cluster import Butina
 from rdkit.rdBase import BlockLogs
@@ -49,7 +54,7 @@ def get_largest_fragment(mol: Mol) -> Mol:
 
 
 # ----------- Clustering
-#https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GroupShuffleSplit.html
+# https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GroupShuffleSplit.html
 def taylor_butina_clustering(fp_list: List[DataStructs.ExplicitBitVect], cutoff: float = 0.65) -> List[int]:
     """Cluster a set of fingerprints using the RDKit Taylor-Butina implementation
 
@@ -116,3 +121,45 @@ def demo_block_logs() -> None:
     block = BlockLogs()
     # do stuff
     del block
+
+
+# ----------- Image generation
+def boxplot_base64_image(dist: np.ndarray, x_lim: list[int] = [0, 10]) -> str:
+    """
+    Plot a distribution as a seaborn boxplot and save the resulting image as a base64 image.
+
+    Parameters:
+    dist (np.ndarray): The distribution data to plot.
+    x_lim (list[int]): The x-axis limits for the boxplot.
+
+    Returns:
+    str: The base64 encoded image string.
+    """
+    sns.set(rc={'figure.figsize': (3, 1)})
+    sns.set_style('whitegrid')
+    ax = sns.boxplot(x=dist)
+    ax.set_xlim(x_lim[0], x_lim[1])
+    s = io.BytesIO()
+    plt.savefig(s, format='png', bbox_inches="tight")
+    plt.close()
+    s = base64.b64encode(s.getvalue()).decode("utf-8").replace("\n", "")
+    return '<img align="left" src="data:image/png;base64,%s">' % s
+
+
+def mol_to_base64_image(mol: Chem.Mol) -> str:
+    """
+    Convert an RDKit molecule to a base64 encoded image string.
+
+    Parameters:
+    mol (Chem.Mol): The RDKit molecule to convert.
+
+    Returns:
+    str: The base64 encoded image string.
+    """
+    drawer = rdMolDraw2D.MolDraw2DCairo(300, 150)
+    drawer.DrawMolecule(mol)
+    drawer.FinishDrawing()
+    text = drawer.GetDrawingText()
+    im_text64 = base64.b64encode(text).decode('utf8')
+    img_str = f"<img src='data:image/png;base64, {im_text64}'/>"
+    return img_str

@@ -5,22 +5,26 @@ from tqdm.auto import tqdm
 
 
 def test_ring_system_finder():
-    buff = """SMILES,InChI,Count
-c1ccccc1,UHOVQNZJYSORNB-UHFFFAOYSA-N,4
-O=c1[nH]c(=O)c2[nH]cnc2[nH]1,LRFVTYWOQMYALW-UHFFFAOYSA-N,2
-c1ccncc1,JUJWROOIHBZHMG-UHFFFAOYSA-N,1
-O=C1CC(=O)NC(=O)[N-]1,HNYOPLTXPVRDBG-UHFFFAOYSA-M,1
-O=C1C=CC(=O)c2ccccc21,FRASJONUBLZVQX-UHFFFAOYSA-N,1
-O=C1C=C2CC[C@H]3[C@@H]4CCC[C@H]4CC[C@@H]3[C@H]2CC1,LWNIAOVFYCEEPT-MDBLMMRSSA-N,1
-C=C1CCCCC1=C,DYEQHQNRKZJUCT-UHFFFAOYSA-N,1
-C=C1CCC[C@@H]2CCC[C@@H]12,UOTNDMDASDMEAG-ZJUUUORDSA-N,1
+    buff = r"""SMILES,InChI,Count
+c1ccccc1,UHOVQNZJYSORNB-UHFFFAOYSA-N,12
+c1c[nH]cn1,RAXXELZNTBOGNW-UHFFFAOYSA-N,3
+C1CCNC1,RWRDLPDLKQPQOW-UHFFFAOYSA-N,2
+C1CCOCC1,DHXVGJBLRPWPCS-UHFFFAOYSA-N,2
+c1ccoc1,YLQBMQCUIZJEEH-UHFFFAOYSA-N,2
+c1cc[nH]c1,KAESVJOAVNADME-UHFFFAOYSA-N,1
+c1cscn1,FZWLAAWBMGSTSO-UHFFFAOYSA-N,1
+O=C1CCCC(=O)NCC(=O)NCC(=O)NCC(=O)NCC(=O)NCCCCCN1,KVCRKKPGTYVCTI-UHFFFAOYSA-N,1
+O=C1CCOC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)CN1,KZHSFFMCPADVHH-UHFFFAOYSA-N,1
 c1ccc2ccccc2c1,UFWIBTONFRDIAS-UHFFFAOYSA-N,1
-c1cncnc1,CZPWVGJYEJSRLH-UHFFFAOYSA-N,1"""
+c1cc2ncncc2cn1,PLZDHJUUEGCXJH-UHFFFAOYSA-N,1
+C1COCCN1,YNAVUWVOSKDBBP-UHFFFAOYSA-N,1
+c1ccc2[nH]ccc2c1,SIKJAQJRHWYJAI-UHFFFAOYSA-N,1
+O=C1O[C@H]2/C=C\CCC[C@H]3C=CCC[C@@H]3C[C@@]23O[C@@H]13,UPDVKQFEWFYNLP-FOQDBRFFSA-N,1"""
     string_fs = StringIO(buff)
     expected_df = pd.read_csv(string_fs)
 
     url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/test.smi"
-    uru.create_ring_dictionary(url, "ring_test.csv")
+    uru.create_ring_dictionary("test_chemreps.txt", "ring_test.csv")
     test_df = pd.read_csv("ring_test.csv")
     pd.testing.assert_frame_equal(test_df, expected_df)
 
@@ -28,7 +32,7 @@ c1cncnc1,CZPWVGJYEJSRLH-UHFFFAOYSA-N,1"""
 def test_ring_system_lookup():
     url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/test.smi"
     df = pd.read_csv(url, sep=" ", names=["SMILES", "Name"])
-    ring_system_lookup = uru.RingSystemLookup.default()
+    ring_system_lookup = uru.RingSystemLookup()
     min_freq_list = []
     for smi in tqdm(df.SMILES):
         freq_list = ring_system_lookup.process_smiles(smi)

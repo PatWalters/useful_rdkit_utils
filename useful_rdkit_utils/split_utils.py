@@ -11,7 +11,8 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import KMeans
 from sklearn.model_selection._split import _BaseKFold
 from tqdm.auto import tqdm
-
+from sklearn.decomposition import PCA
+from umap import UMAP
 from .descriptors import smi2numpy_fp
 from .misc_utils import taylor_butina_clustering
 
@@ -76,17 +77,19 @@ def get_umap_clusters(smiles_list: List[str], n_clusters: int = 7) -> np.ndarray
     From Scaffold Splits Overestimate Virtual Screening Performance
     https://arxiv.org/abs/2406.00873
 
-
-
     :param smiles_list: List of SMILES strings
     :param n_clusters: The number of clusters to use for clustering
     :return: Array of cluster labels corresponding to each SMILES string in the input list.
     """
     fp_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
-    ac = AgglomerativeClustering(n_clusters=n_clusters)
     mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
     fp_list = [fp_gen.GetFingerprintAsNumPy(x) for x in mol_list]
-    ac.fit_predict(np.stack(fp_list))
+    pca = PCA(n_components=50)
+    pcs = pca.fit_transform(np.stack(fp_list))
+    reducer = UMAP(n_components=2, n_neighbors=15, min_dist=0.1)
+    embedding = reducer.fit_transform(pcs)
+    ac = AgglomerativeClustering(n_clusters=n_clusters)
+    ac.fit_predict(embedding)
     return ac.labels_
 
 

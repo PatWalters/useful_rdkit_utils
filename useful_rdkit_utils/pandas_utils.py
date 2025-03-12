@@ -1,8 +1,7 @@
 import pandas as pd
-
+import useful_rdkit_utils
 
 # from  https://stackoverflow.com/questions/47136436/python-pandas-convert-value-counts-output-to-dataframe
-import useful_rdkit_utils
 
 
 def value_counts_df(df_in, col_in):
@@ -29,3 +28,13 @@ def add_molecule_and_errors(df_in, smiles_col='SMILES', mol_col_name='ROMol', er
     :return: None
     """
     df_in[[mol_col_name, error_col_name]] = df_in[smiles_col].apply(useful_rdkit_utils.smi2mol_with_errors).to_list()
+
+def split_dataframe(df, chunk_size = 10000):
+    chunks = list()
+    num_chunks = len(df) // chunk_size + 1
+    for i in range(num_chunks):
+        chunks.append(df[i*chunk_size:(i+1)*chunk_size])
+    return chunks
+
+def get_dataframe_nans(df):
+    return df[df.isnull().any(axis=1)]
