@@ -1,5 +1,5 @@
 click
-numpy<2.0
+numpy
 py3DMol
 pytest
 jupyter
@@ -13,6 +13,7 @@ sphinx-click
 sphinx-automodapi
 sphinx-rtd-theme
 tqdm
+umap-learn
 rdkit
 
 scikit-learn

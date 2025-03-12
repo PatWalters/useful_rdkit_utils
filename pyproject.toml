@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-     'numpy<2.0',	
+     'numpy',	
      'rdkit',
      'pandas',
      'pystow',
@@ -26,6 +26,7 @@ dependencies = [
      'scipy',
      'tqdm',
      'scikit-learn',
+     'umap-learn',
      'dataclasses',
      'py3dmol',
      'click'
