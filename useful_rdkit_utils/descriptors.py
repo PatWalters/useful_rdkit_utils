@@ -18,6 +18,8 @@ from tqdm.auto import tqdm
 
 
 class Smi2Fp:
+    """ Calculate Morgan fingerprints from SMILES strings """
+
     def __init__(self, radius: int = 3, fpSize: int = 2048):
         self.fpgen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fpSize)
 
