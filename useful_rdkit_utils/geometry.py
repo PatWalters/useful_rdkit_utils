@@ -91,11 +91,11 @@ def mcs_rmsd(mol_1: Mol, mol_2: Mol, id_1: int = 0, id_2: int = 0) -> Tuple[int,
     return num_mcs_atoms, float(min_rmsd)
 
 
-# from https://birdlet.github.io/2019/10/02/py3dmol_example/
-def MolTo3DView(mol, size=(300, 300), style="stick", surface=False, opacity=0.5) -> py3Dmol.view:
-    """Draw molecule in 3D
+# Adapted from https://birdlet.github.io/2019/10/02/py3dmol_example/
+def mol_to_3D_view(mol_list, size=(300, 300), style="stick", surface=False, opacity=0.5) -> py3Dmol.view:
+    """Draw a list of molecules in 3D
 
-    :mol: rdMol, molecule to show
+    :mol_list: list[rdMol], a list of rdMols to show
     :size: tuple(int, int), canvas size
     :style: str, type of drawing molecule,
         style can be 'line', 'stick', 'sphere', 'carton'
@@ -104,11 +104,17 @@ def MolTo3DView(mol, size=(300, 300), style="stick", surface=False, opacity=0.5)
     :return: viewer: py3Dmol.view, a class for constructing embedded 3Dmol.js views in ipython notebooks.
     """
     import py3Dmol
-    assert style in ('line', 'stick', 'sphere', 'carton')
-    mblock = Chem.MolToMolBlock(mol)
+    assert style in ('line', 'stick', 'sphere', 'cartoon')
+
+    colors = ["lightgray", "pink", "lightgreen", "magenta", "cyan", "orange", "purple"]
+
     viewer = py3Dmol.view(width=size[0], height=size[1])
-    viewer.addModel(mblock, 'mol')
-    viewer.setStyle({style: {}})
+
+    for i, mol in enumerate(mol_list):
+        color_idx = i % len(colors)
+        mblock = Chem.MolToMolBlock(mol)
+        viewer.addModel(mblock, 'mol')
+        viewer.setStyle({'model': i}, {'stick': {'colorscheme': f'{colors[color_idx]}Carbon'}})
     if surface:
         viewer.addSurface(py3Dmol.SAS, {'opacity': opacity})
     viewer.zoomTo()
