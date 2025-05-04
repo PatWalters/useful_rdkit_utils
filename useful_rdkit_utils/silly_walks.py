@@ -6,7 +6,6 @@ import pystow
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
 from tqdm import tqdm
-import numpy as np
 
 class SillyWalks:
     def __init__(self) -> None:

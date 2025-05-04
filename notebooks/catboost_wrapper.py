@@ -6,7 +6,6 @@ from rdkit.Chem import rdFingerprintGenerator
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pandas as pd
-import useful_rdkit_utils as uru
 
 class CatBoostWrapper:
     def __init__(self, y_col):

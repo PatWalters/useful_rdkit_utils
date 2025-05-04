@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Union
 
 from rdkit.Chem.rdChemReactions import ChemicalReaction
 from rdkit.Chem import AllChem

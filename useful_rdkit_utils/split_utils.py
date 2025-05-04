@@ -149,7 +149,6 @@ def cross_validate(df: pd.DataFrame,
     :param n_inner: The number of inner folds for cross-validation. Default is 5.
     :return: A dataframe containing the metric values for each fold, model, and group.
     """
-    metric_vals = []
     fold_df_list = []
     input_cols = df.columns
     for i in tqdm(range(0, n_outer), leave=False):

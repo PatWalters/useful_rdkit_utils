@@ -27,7 +27,7 @@ copyright = f'{date.today().year}, Pat Walters'
 author = 'Pat Walters'
 
 # The full version, including alpha/beta/rc tags.
-release = '0.80.0'
+release = '0.81.0'
 
 
 # The short X.Y version.
@@ -39,8 +39,8 @@ parsed_version = re.match(
 
 version = parsed_version.expand('\g<major>.\g<minor>.\g<patch>')
 
-if parsed_version.group('release'):
-    tags.add('prerelease')
+#if parsed_version.group('release'):
+#    tags.add('prerelease')
 
 # -- General configuration ---------------------------------------------------
 

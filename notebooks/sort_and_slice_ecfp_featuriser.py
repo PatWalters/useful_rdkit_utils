@@ -83,11 +83,12 @@ def create_sort_and_slice_ecfp_featuriser(mols_train,
     
     # create a function sub_id_enumerator that maps a mol object to a dictionary whose keys are the integer substructure identifiers in mol and whose values are the associated substructure counts (i.e., how often each substructure appears in mol)
     morgan_generator = rdFingerprintGenerator.GetMorganGenerator(radius = max_radius,
-                                                                 atomInvariantsGenerator = rdFingerprintGenerator.GetMorganFeatureAtomInvGen() if pharm_atom_invs == True else rdFingerprintGenerator.GetMorganAtomInvGen(includeRingMembership = True),
+                                                                 atomInvariantsGenerator = rdFingerprintGenerator.GetMorganFeatureAtomInvGen() if pharm_atom_invs is True else rdFingerprintGenerator.GetMorganAtomInvGen(includeRingMembership = True),
                                                                  useBondTypes = bond_invs,
                                                                  includeChirality = chirality)
     
-    sub_id_enumerator = lambda mol: morgan_generator.GetSparseCountFingerprint(mol).GetNonzeroElements()
+    def sub_id_enumerator(mol):
+        return morgan_generator.GetSparseCountFingerprint(mol).GetNonzeroElements()
     
     # construct dictionary that maps each integer substructure identifier sub_id in mols_train to its associated prevalence (i.e., to the total number of compounds in mols_train that contain sub_id at least once)
     sub_ids_to_prevs_dict = {}
@@ -115,7 +116,7 @@ def create_sort_and_slice_ecfp_featuriser(mols_train,
     def ecfp_featuriser(mol):
 
         # create list of integer substructure identifiers contained in input mol object (multiplied by how often they are structurally contained in mol if sub_counts = True)
-        if sub_counts == True:
+        if sub_counts is True:
             sub_id_list = [sub_idd for (sub_id, count) in sub_id_enumerator(mol).items() for sub_idd in [sub_id]*count]
         else:
             sub_id_list = list(sub_id_enumerator(mol).keys())
@@ -126,7 +127,7 @@ def create_sort_and_slice_ecfp_featuriser(mols_train,
         return ecfp_vector
     
     # print information on training set
-    if print_train_set_info == True:
+    if print_train_set_info is True:
         print("Number of compounds in molecular training set = ", len(mols_train))
         print("Number of unique circular substructures with the specified parameters in molecular training set = ", len(sub_ids_to_prevs_dict))
 
