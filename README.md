@@ -4,7 +4,9 @@ useful_rdkit_utils
 [![GitHub Actions Build Status](https://github.com/PatWalters/useful_rdkit_utils/workflows/CI/badge.svg)](https://github.com/PatWalters/useful_rdkit_utils/actions?query=workflow%3ACI)
 
 
-A collection of useful RDKit functions
+A motley collection of useful RDKit functions
+
+<img src="nikki.png" alt="Robot Nikki" width="300"/>
 
 ### Download
 ```bash
@@ -35,7 +37,7 @@ I'm very open to PRs with corrections and/or contributions.
 
 ### Copyright
 
-Copyright (c) 2021-2024, Pat Walters
+Copyright (c) 2021-2025, Pat Walters
 
 ### License
 
