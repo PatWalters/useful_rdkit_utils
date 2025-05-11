@@ -9,6 +9,7 @@ from rdkit.Chem.rdFMCS import FindMCS
 from rdkit.Chem.rdMolTransforms import ComputeCentroid
 from rdkit.Chem.rdchem import Mol
 from typing import Tuple
+from itertools import combinations
 
 
 # ----------- Molecular geometry
@@ -45,7 +46,7 @@ def gen_3d(mol: Mol) -> Optional[Mol]:
     return mol_3d
 
 
-def gen_conformers(mol, num_confs=10):
+def gen_conformers(mol, num_confs=50):
     """Generate conformers for a molecule
 
     :param mol: RDKit molecule
@@ -56,10 +57,44 @@ def gen_conformers(mol, num_confs=10):
         params = AllChem.ETKDGv3()
         params.useSmallRingTorsions = True
         AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, params=params)
-        AllChem.MMFFOptimizeMoleculeConfs(mol)
+        energy_list = AllChem.MMFFOptimizeMoleculeConfs(mol, maxIters=500)
+        for energy_tuple, conf in zip(energy_list, mol.GetConformers()):
+            converged, energy = energy_tuple
+            conf.SetDoubleProp("Energy", energy)
         mol = Chem.RemoveHs(mol)
     except ValueError:
         mol = None
+    return mol
+
+def refine_conformers(mol: Mol, energy_threshold: float = 50, rms_threshold: Optional[float] = 0.5) -> Mol:
+    """
+    Refine the conformers of a molecule by removing those with high energy or low RMSD.
+
+    :param mol: RDKit molecule with conformers.
+    :param energy_threshold: Energy threshold above which conformers are removed.
+    :param rms_threshold: RMSD threshold below which conformers are considered redundant and removed.
+                          If None, RMSD filtering is skipped.
+    :return: RDKit molecule with refined conformers.
+    """
+    energy_list = [None] * mol.GetNumConformers()
+    for i in range(0, mol.GetNumConformers()):
+        conf = mol.GetConformer(i)
+        conf_idx = conf.GetId()
+        energy_list[conf_idx] = float(conf.GetProp("Energy"))
+    energy_array = np.array(energy_list)
+    min_energy = min(energy_list)
+    energy_array -= min_energy
+    energy_remove_idx = np.argwhere(energy_array > energy_threshold)
+    for i in energy_remove_idx.flatten()[::-1]:
+        mol.RemoveConformer(int(i))
+    conf_ids = [x.GetId() for x in mol.GetConformers()]
+
+    if rms_threshold is not None:
+        rms_list = [(i1, i2, AllChem.GetConformerRMS(mol, i1, i2)) for i1, i2 in combinations(conf_ids, 2)]
+        rms_remove_idx = list(set([x[1] for x in rms_list if x[2] < rms_threshold]))
+        rms_remove_idx.reverse()
+        for i in rms_remove_idx:
+            mol.RemoveConformer(int(i))
     return mol
 
 

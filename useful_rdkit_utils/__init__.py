@@ -15,5 +15,6 @@ from .jupyter_utils import *
 from .reactions import *
 from .split_utils import *
 from .scaffold_finder import *
+from .optional import *
 
 __version__ = "0.81"
