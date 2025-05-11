@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 import py3Dmol
@@ -96,6 +96,15 @@ def refine_conformers(mol: Mol, energy_threshold: float = 50, rms_threshold: Opt
         for i in rms_remove_idx:
             mol.RemoveConformer(int(i))
     return mol
+
+def get_conformer_energies(mol: Mol) -> List[float]:
+    """
+    Retrieve the energies of all conformers in a molecule.
+
+    :param mol: RDKit molecule containing conformers.
+    :return: A list of energies for each conformer as floats.
+    """
+    return [float(conf.GetProp("Energy")) for conf in mol.GetConformers()]
 
 
 def mcs_rmsd(mol_1: Mol, mol_2: Mol, id_1: int = 0, id_2: int = 0) -> Tuple[int, float]:
