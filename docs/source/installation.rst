@@ -11,7 +11,7 @@ To get the extras, install with:
 
 .. code-block:: shell
 
-    $ pip install useful_rdkit_utils[viz,cli,jupyter]
+    $ pip install useful_rdkit_utils[extras]
 
 The most recent code and data can be installed directly from GitHub with:
 

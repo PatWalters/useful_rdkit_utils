@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import itertools
-import sys
 from operator import itemgetter
 
-import click
 import pandas as pd
 import pystow
 from rdkit import Chem
@@ -266,19 +264,7 @@ def generate_no_stereo_ring_systems(df):
     return no_stereo_ring_df
 
 
-@click.command()
-@click.option("--mode", prompt="mode [build|search]", help="[build|search]")
-@click.option("--infile", prompt="Input chemreps file", help="input file")
-@click.option("--outfile", prompt="Output csv file", help="output file")
-def main(mode, infile, outfile):
-    mode_list = ["build", "search"]
-    if mode not in mode_list:
-        print(f"mode must be one of {mode_list}")
-        sys.exit(0)
-    if mode == "build":
-        create_ring_dictionary(infile, outfile)
-    if mode == "search":
-        test_ring_system_lookup(infile, outfile)
+
 
 
 # ----------- Ring stats
@@ -323,5 +309,4 @@ def ring_stats(mol):
     return num_rings, max_size
 
 
-if __name__ == "__main__":
-    main()
+

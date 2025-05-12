@@ -5,7 +5,10 @@ from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.decomposition import PCA
-from umap import UMAP
+try:
+    from umap import UMAP
+except ImportError:
+    print("UMAP not installed.  Optional UMAP clustering not available.")
 
 # I wrote the function below for a blog post.  I don't think this is a good strategy for dataset splitting.
 # I'm putting the code in optional.py to reduce the dependency burden

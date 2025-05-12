@@ -26,10 +26,8 @@ dependencies = [
      'scipy',
      'tqdm',
      'scikit-learn',
-     'umap-learn',
      'dataclasses',
-     'py3dmol',
-     'click'
+     'py3DMol',
 ]
 
 [tool.hatch.version]
@@ -37,8 +35,7 @@ path = "useful_rdkit_utils/__init__.py"
 
 [project.optional-dependencies]
 tests = ['pytest']
-viz = ['py3DMol', 'seaborn']
-cli = ['click']
+extras = ['umap-learn', 'click']
 
 [project.urls]
 "Homepage" = "https://github.com/PatWalters/useful_rdkit_utils"
