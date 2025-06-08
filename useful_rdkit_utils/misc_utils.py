@@ -14,6 +14,8 @@ from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.rdchem import Mol
 from rdkit.ML.Cluster import Butina
 from rdkit.rdBase import BlockLogs
+from rdkit.Chem import AllChem
+from rdkit.Chem.rdFMCS import FindMCS
 
 
 # ----------- Structure reading and cleanup
@@ -163,3 +165,76 @@ def mol_to_base64_image(mol: Chem.Mol) -> str:
     im_text64 = base64.b64encode(text).decode('utf8')
     img_str = f"<img src='data:image/png;base64, {im_text64}'/>"
     return img_str
+
+# ----------- Align molecules
+def remove_dummy_atoms(mol: Chem.Mol) -> Chem.Mol:
+    """
+    Remove dummy atoms (atomic number 0) from an RDKit molecule.
+
+    :param mol: RDKit molecule from which to remove dummy atoms.
+    :type mol: rdkit.Chem.Mol
+    :return: RDKit molecule with dummy atoms removed.
+    :rtype: rdkit.Chem.Mol
+    """
+    rwmol = Chem.RWMol(mol)
+    remove_list = [atm.GetIdx() for atm in rwmol.GetAtoms() if atm.GetAtomicNum() == 0]
+    for atm_id in sorted(remove_list, reverse=True):
+        rwmol.RemoveAtom(atm_id)
+    Chem.SanitizeMol(rwmol)
+    return Chem.Mol(rwmol)
+
+
+def align_mols_to_template(template_smiles, smiles_list):
+    """
+    Aligns a list of molecules to a template molecule defined by its SMILES string.
+
+    Removes dummy atoms (atomic number 0) from the template, generates 2D coordinates,
+    and aligns each molecule in the input list to the template structure.
+
+    :param template_smiles: SMILES string of the template molecule.
+    :type template_smiles: str
+    :param smiles_list: List of SMILES strings to align.
+    :type smiles_list: list[str]
+    :return: List of aligned RDKit molecule objects.
+    :rtype: list[rdkit.Chem.Mol]
+    """
+    scaffold_mol = (Chem.MolFromSmiles(template_smiles))
+    # remove dummy atoms from the scaffold molecule
+    scaffold_mol = remove_dummy_atoms(scaffold_mol)
+    # generate 2D coordinates for the scaffold molecule
+    AllChem.Compute2DCoords(scaffold_mol)
+    # generate RDKit molecules for the input structures
+    mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
+    # generate aligned structures
+    [AllChem.GenerateDepictionMatching2DStructure(m,scaffold_mol) for m in mol_list]
+    return mol_list
+
+def mcs_align(smiles_list):
+    """
+    Aligns a list of molecules to their Maximum Common Substructure (MCS).
+
+    Converts SMILES strings to RDKit molecules, finds the MCS (restricted to complete rings),
+    generates 2D coordinates for the MCS template, and aligns all molecules to this template.
+
+    :param smiles_list: List of SMILES strings to align.
+    :type smiles_list: list[str]
+    :return: List of aligned RDKit molecule objects.
+    :rtype: list[rdkit.Chem.Mol]
+    """
+    # convert the SMILES to RDKit molecules
+    mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
+    # define the parameters for the MCS calculation, if we're aligning it's import that the MCS only contains complete rings
+    params = Chem.rdFMCS.MCSParameters()
+    params.BondCompareParameters.CompleteRingsOnly=True
+    params.AtomCompareParameters.CompleteRingsOnly=True
+    # find the MCS
+    mcs = FindMCS(mol_list,params)
+    # get query molecule from the MCS, we will use this as a template for alignment
+    qmol = mcs.queryMol
+    # generate coordinates for the template
+    AllChem.Compute2DCoords(qmol)
+    # generate coordinates for the molecules using the template
+    [AllChem.GenerateDepictionMatching2DStructure(m,qmol) for m in mol_list]
+    # Draw the molecules, highlighting the MCS
+    return mol_list
+

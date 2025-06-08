@@ -112,6 +112,7 @@ def get_molecules_with_scaffold(
     merge_df = match_df.merge(activity_df, left_on=["SMILES","Name"],
                               right_on=[smiles_col, name_col], how="left")
     scaffold_mol = Chem.MolFromSmiles(scaffold)
+    Chem.RemoveStereochemistry(scaffold_mol)
     rgroup_match, rgroup_miss = RGroupDecompose(
         scaffold_mol, merge_df.mol, asSmiles=True
     )
