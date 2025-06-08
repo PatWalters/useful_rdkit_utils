@@ -59,7 +59,7 @@ def generate_fragments(mol: Mol) -> pd.DataFrame:
     return frag_df
 
 
-def find_scaffolds(df_in: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def find_scaffolds(df_in: pd.DataFrame, smiles_col="SMILES", name_col="Name",disable_progress=False) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Generate scaffolds for a set of molecules
     :param df_in: Pandas dataframe with [SMILES, Name, RDKit molecule] columns
@@ -67,7 +67,7 @@ def find_scaffolds(df_in: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     # Loop over molecules and generate fragments, fragments for each molecule are returned as a Pandas dataframe
     df_list = []
-    for smiles, name, mol in tqdm(df_in[["SMILES", "Name", "mol"]].values):
+    for smiles, name, mol in tqdm(df_in[[smiles_col, name_col, "mol"]].values, disable=disable_progress):
         tmp_df = generate_fragments(mol).copy()
         tmp_df['Name'] = name
         tmp_df['SMILES'] = smiles
@@ -80,32 +80,47 @@ def find_scaffolds(df_in: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         scaffold_list.append([k, len(v.Name.unique()), v.NumAtoms.values[0]])
     scaffold_df = pd.DataFrame(scaffold_list, columns=["Scaffold", "Count", "NumAtoms"])
     # Any fragment that occurs more times than the number of fragments can't be a scaffold
-    len(df_in)
+    num_df_rows = len(df_in)
     scaffold_df = scaffold_df.query("Count <= @num_df_rows")
     # Sort scaffolds by frequency
     scaffold_df = scaffold_df.sort_values(["Count", "NumAtoms"], ascending=[False, False])
     return mol_df, scaffold_df
 
+def get_molecules_with_scaffold(
+    scaffold: str,
+    mol_df: pd.DataFrame,
+    activity_df: pd.DataFrame,
+    smiles_col: str = "SMILES",
+    name_col: str = "Name",
+    activity_col: str = "pIC50",
+    extra_cols: List[str] = []
+) -> Tuple[List[str], pd.DataFrame]:
+    """
+    Find molecules in a DataFrame that match a given scaffold and return their core structures and activity data.
 
-def get_molecules_with_scaffold(scaffold: str, mol_df: pd.DataFrame, activity_df: pd.DataFrame) -> Tuple[
-    List[str], pd.DataFrame]:
+    :param scaffold: SMILES string of the scaffold to match.
+    :param mol_df: DataFrame containing molecule information and fragments.
+    :param activity_df: DataFrame containing activity data for molecules.
+    :param smiles_col: Name of the column containing SMILES strings.
+    :param name_col: Name of the column containing molecule names.
+    :param activity_col: Name of the column containing activity values.
+    :param extra_cols: Additional columns to include in the output DataFrame.
+    :return: A tuple with a list of unique core SMILES and a DataFrame of matching molecules with activity data.
     """
-    Associate molecules with scaffolds
-    :param scaffold: scaffold SMILES
-    :param mol_df: dataframe with molecules and scaffolds, returned by find_scaffolds()
-    :param activity_df: dataframe with [SMILES, Name, pIC50] columns
-    :return: list of core(s) with R-groups labeled, dataframe with [SMILES, Name, pIC50]
-    """
-    match_df = mol_df.query("Scaffold == @scaffold")
-    merge_df = match_df.merge(activity_df, on=["SMILES", "Name"])
+    match_df = mol_df.query("Scaffold == @scaffold").copy()
+    match_df['mol'] = match_df.SMILES.apply(Chem.MolFromSmiles)
+    merge_df = match_df.merge(activity_df, left_on=["SMILES","Name"],
+                              right_on=[smiles_col, name_col], how="left")
     scaffold_mol = Chem.MolFromSmiles(scaffold)
-    rgroup_match, rgroup_miss = RGroupDecompose(scaffold_mol, merge_df.mol, asSmiles=True)
+    rgroup_match, rgroup_miss = RGroupDecompose(
+        scaffold_mol, merge_df.mol, asSmiles=True
+    )
+    output_cols = [smiles_col, name_col, activity_col] + extra_cols
     if len(rgroup_match):
         rgroup_df = pd.DataFrame(rgroup_match)
-        return rgroup_df.Core.unique(), merge_df[["SMILES", "Name", "pIC50"]]
+        return rgroup_df.Core.unique(), merge_df[output_cols]
     else:
-        return [], merge_df[["SMILES", "Name", "pIC50"]]
-
+        return [], merge_df[output_cols]
 
 def main():
     """
