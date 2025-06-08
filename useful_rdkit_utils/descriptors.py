@@ -64,7 +64,8 @@ class Smi2Fp:
 
 
 def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.ExplicitBitVect:
-    """Convert an RDKit molecule to a Morgan fingerprint
+    """
+    Convert an RDKit molecule to a Morgan fingerprint
     To avoid the rdkit deprecated warning, do this
     from rdkit import rdBase
     with rdBase.BlockLogs():
