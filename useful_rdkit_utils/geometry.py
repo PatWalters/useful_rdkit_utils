@@ -46,25 +46,30 @@ def gen_3d(mol: Mol) -> Optional[Mol]:
     return mol_3d
 
 
-def gen_conformers(mol, num_confs=50):
-    """Generate conformers for a molecule
+def gen_conformers(mol: Mol, num_confs: int = 50) -> Optional[Mol]:
+    """
+    Generate conformers for a molecule.
 
     :param mol: RDKit molecule
-    :return: molecule with conformers
+    :param num_confs: Number of conformers to generate
+    :return: Molecule with conformers or None if generation fails
     """
     try:
         mol = Chem.AddHs(mol)
         params = AllChem.ETKDGv3()
         params.useSmallRingTorsions = True
-        AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, params=params)
+        confgen_res = AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, params=params)
+        if len(confgen_res) != num_confs:
+            raise ValueError(f"Failed to generate {num_confs} conformers, got {len(confgen_res)}")
         energy_list = AllChem.MMFFOptimizeMoleculeConfs(mol, maxIters=500)
         for energy_tuple, conf in zip(energy_list, mol.GetConformers()):
-            converged, energy = energy_tuple
+            _, energy = energy_tuple
             conf.SetDoubleProp("Energy", energy)
         mol = Chem.RemoveHs(mol)
-    except ValueError:
-        mol = None
-    return mol
+        return mol
+    except Exception as e:
+        print(f"Error generating conformers: {e}")
+        return None
 
 def refine_conformers(mol: Mol, energy_threshold: float = 50, rms_threshold: Optional[float] = 0.5) -> Mol:
     """

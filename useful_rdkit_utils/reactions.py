@@ -20,8 +20,8 @@ def enumerate_library(rxn_mol: ChemicalReaction, reagent_lol: List[List[Mol]]) -
     :param reagent_lol: A list of lists, where each inner list represents a set of reagents. Each reagent is an
     RDKit Mol object. The molecule object must have a "_Name" property that contains a string identifier.
     :return: A list of lists, where each inner list represents a product. Each product is represented as a list
-             containing a SMILES string of the product and a string identifier formed by joining the identifiers of
-             the reagents used to form the product.
+    containing a SMILES string of the product and a string identifier formed by joining the identifiers of
+    the reagents used to form the product.
     """
     prod_list = []
     # itertools.product generates all combinations of reactants
