@@ -143,6 +143,21 @@ def create_ring_dictionary(input_chemreps, output_csv):
     df_no_stereo_out.to_csv(output_csv.replace(".csv", "_no_stereo.csv"), index=False)
 
 
+def build_ring_systems_dataframe(res: list) -> pd.DataFrame:
+    """
+    Build a DataFrame with ring system information and minimum frequency.
+
+    :param res: List of ring system results for each molecule.
+    :return: DataFrame with columns for ring systems, min ring, and min frequency.
+    """
+    res_df = pd.DataFrame()
+    res_df["ring_systems"] = res
+    freq_data = res_df.ring_systems.apply(get_min_ring_frequency)
+    res_df["min_ring"] = [x[0] for x in freq_data]
+    res_df["min_freq"] = [x[1] for x in freq_data]
+    return res_df
+
+
 class RingSystemLookup:
     """Lookup ring systems from a dictionary of rings and frequencies"""
 
@@ -194,7 +209,7 @@ class RingSystemLookup:
             res = self.process_mol(mol)
         return res
 
-    def pandas_smiles_list(self, smiles_list):
+    def pandas_smiles(self, smiles_list):
         """
         find ring systems from a list of SMILES
         :param smiles_list: list of SMILES
@@ -203,12 +218,18 @@ class RingSystemLookup:
         res = []
         for smi in tqdm(smiles_list):
             res.append(self.process_smiles(smi))
-        res_df = pd.DataFrame()
-        res_df["ring_systems"] = res
-        freq_data = res_df.ring_systems.apply(get_min_ring_frequency)
-        res_df["min_ring"] = [x[0] for x in freq_data]
-        res_df["min_freq"] = [x[1] for x in freq_data]
-        return res_df
+        return build_ring_systems_dataframe(res)
+
+    def pandas_mols(self, mol_list):
+        """
+        find ring systems from a list of SMILES
+        :param smiles_list: list of SMILES
+        :return: dataframe with ring information
+        """
+        res = []
+        for mol in tqdm(mol_list):
+            res.append(self.process_mol(mol))
+        return build_ring_systems_dataframe(res)
 
 
 def test_ring_system_lookup(input_filename, output_filename):
