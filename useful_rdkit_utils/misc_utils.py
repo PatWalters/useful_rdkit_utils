@@ -166,7 +166,7 @@ def mol_to_base64_image(mol: Chem.Mol, target="html") -> str:
     return img_str
 
 
-def smiles_to_base64_images(smiles: str, target: str = "html") -> str:
+def smi_to_base64_image(smiles: str, target: str = "html") -> str:
     """
     Convert a SMILES string to a base64 encoded image string.
 
