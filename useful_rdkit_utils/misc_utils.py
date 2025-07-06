@@ -130,12 +130,9 @@ def boxplot_base64_image(dist: np.ndarray, x_lim: list[int] = [0, 10]) -> str:
     """
     Plot a distribution as a seaborn boxplot and save the resulting image as a base64 image.
 
-    Parameters:
-    dist (np.ndarray): The distribution data to plot.
-    x_lim (list[int]): The x-axis limits for the boxplot.
-
-    Returns:
-    str: The base64 encoded image string.
+    :param dist: The distribution data to plot.
+    :param x_lim: The x-axis limits for the boxplot.
+    :return: The base64 encoded image string.
     """
     sns.set(rc={'figure.figsize': (3, 1)})
     sns.set_style('whitegrid')
@@ -148,23 +145,40 @@ def boxplot_base64_image(dist: np.ndarray, x_lim: list[int] = [0, 10]) -> str:
     return '<img align="left" src="data:image/png;base64,%s">' % s
 
 
-def mol_to_base64_image(mol: Chem.Mol) -> str:
+def mol_to_base64_image(mol: Chem.Mol, target="html") -> str:
     """
     Convert an RDKit molecule to a base64 encoded image string.
 
-    Parameters:
-    mol (Chem.Mol): The RDKit molecule to convert.
-
-    Returns:
-    str: The base64 encoded image string.
+    :param mol: The RDKit molecule to convert.
+    :return: The base64 encoded image string.
     """
     drawer = rdMolDraw2D.MolDraw2DCairo(300, 150)
     drawer.DrawMolecule(mol)
     drawer.FinishDrawing()
     text = drawer.GetDrawingText()
     im_text64 = base64.b64encode(text).decode('utf8')
-    img_str = f"<img src='data:image/png;base64, {im_text64}'/>"
+    if target == "html":
+        img_str = f"<img src='data:image/png;base64, {im_text64}'/>"
+    elif target == "altair":
+        img_str = f"data:image/png;base64,{im_text64}"
+    else:
+        raise ValueError("Target must be 'html' or 'altair'.")
     return img_str
+
+
+def smiles_to_base64_images(smiles: str, target: str = "html") -> str:
+    """
+    Convert a SMILES string to a base64 encoded image string.
+
+    :param smiles: The SMILES string to convert.
+    :param target: The target format for the image, either "html" or "altair".
+    :return: The base64 encoded image string.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise ValueError(f"Invalid SMILES string {smiles}.")
+    return mol_to_base64_image(mol, target=target)
+
 
 # ----------- Align molecules
 def remove_dummy_atoms(mol: Chem.Mol) -> Chem.Mol:
@@ -192,11 +206,8 @@ def align_mols_to_template(template_smiles, smiles_list):
     and aligns each molecule in the input list to the template structure.
 
     :param template_smiles: SMILES string of the template molecule.
-    :type template_smiles: str
     :param smiles_list: List of SMILES strings to align.
-    :type smiles_list: list[str]
     :return: List of aligned RDKit molecule objects.
-    :rtype: list[rdkit.Chem.Mol]
     """
     scaffold_mol = (Chem.MolFromSmiles(template_smiles))
     # remove dummy atoms from the scaffold molecule
@@ -206,8 +217,9 @@ def align_mols_to_template(template_smiles, smiles_list):
     # generate RDKit molecules for the input structures
     mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
     # generate aligned structures
-    [AllChem.GenerateDepictionMatching2DStructure(m,scaffold_mol) for m in mol_list]
+    [AllChem.GenerateDepictionMatching2DStructure(m, scaffold_mol) for m in mol_list]
     return mol_list
+
 
 def mcs_align(smiles_list):
     """
@@ -225,16 +237,15 @@ def mcs_align(smiles_list):
     mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
     # define the parameters for the MCS calculation, if we're aligning it's import that the MCS only contains complete rings
     params = Chem.rdFMCS.MCSParameters()
-    params.BondCompareParameters.CompleteRingsOnly=True
-    params.AtomCompareParameters.CompleteRingsOnly=True
+    params.BondCompareParameters.CompleteRingsOnly = True
+    params.AtomCompareParameters.CompleteRingsOnly = True
     # find the MCS
-    mcs = FindMCS(mol_list,params)
+    mcs = FindMCS(mol_list, params)
     # get query molecule from the MCS, we will use this as a template for alignment
     qmol = mcs.queryMol
     # generate coordinates for the template
     AllChem.Compute2DCoords(qmol)
     # generate coordinates for the molecules using the template
-    [AllChem.GenerateDepictionMatching2DStructure(m,qmol) for m in mol_list]
+    [AllChem.GenerateDepictionMatching2DStructure(m, qmol) for m in mol_list]
     # Draw the molecules, highlighting the MCS
     return mol_list
-
