@@ -108,7 +108,9 @@ def get_molecules_with_scaffold(
     :return: A tuple with a list of unique core SMILES and a DataFrame of matching molecules with activity data.
     """
     match_df = mol_df.query("Scaffold == @scaffold").copy()
-    match_df['mol'] = match_df.SMILES.apply(Chem.MolFromSmiles)
+    # Generate RDKit molecules if not already present in activity_df
+    if "mol" not in activity_df.columns:
+        match_df['mol'] = match_df.SMILES.apply(Chem.MolFromSmiles)
     merge_df = match_df.merge(activity_df, left_on=["SMILES","Name"],
                               right_on=[smiles_col, name_col], how="left")
     scaffold_mol = Chem.MolFromSmiles(scaffold)
