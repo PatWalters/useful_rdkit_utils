@@ -76,7 +76,8 @@ def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.E
     :param nBits: number of fingerprint bits
     :return: RDKit Morgan fingerprint
     """
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nBits)
+    mfpgen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=nBits)
+    fp = mfpgen.GetFingerprint(mol)
     return fp
 
 

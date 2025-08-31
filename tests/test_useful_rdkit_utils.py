@@ -71,7 +71,7 @@ def test_mol2numpy_fp():
     fp_1 = uru.mol2numpy_fp(mol_1)
     mol_2 = Chem.MolFromSmiles("c1ccccc1")
     fp_2 = uru.mol2numpy_fp(mol_2)
-    assert fp_1.sum() == fp_2.sum()
+    np.testing.assert_array_equal(fp_1, fp_2)
 
 
 def test_rdkit_props_calc_mol():
