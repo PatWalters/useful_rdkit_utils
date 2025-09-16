@@ -39,3 +39,17 @@ def kcal_to_ki(kcal, units="uM"):
     """
     multiplier = get_unit_multiplier(units)
     return math.exp(kcal / 0.5961) / multiplier
+
+def ug_ml_to_uM(concentration_ug_ml, molar_mass_da):
+    """
+    Converts concentration from micrograms per milliliter (ug/mL) to micromolar (uM).
+
+    :param concentration_ug_ml: The concentration in ug/mL.
+    :param molar_mass_da: The molar mass of the substance in Daltons (Da), equivalent to g/mol.
+    :return: The concentration in micromolar (uM).
+    """
+    # The conversion factor is 1000 because 1 g/mol = 1000 ug/umol.
+    # Therefore, (ug/mL) / (g/mol) = (ug/mL) / (ug/umol) = umol/mL = uM.
+    # The formula simplifies to: (concentration_ug_ml / molar_mass_da) * 1000
+    concentration_uM = (concentration_ug_ml / molar_mass_da) * 1000
+    return concentration_uM
