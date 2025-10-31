@@ -17,4 +17,4 @@ from .split_utils import *
 from .scaffold_finder import *
 from .optional import *
 
-__version__ = "0.91"
+__version__ = "0.92"
