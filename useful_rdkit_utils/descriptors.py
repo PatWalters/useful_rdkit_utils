@@ -353,3 +353,22 @@ class Ro5Calculator:
         for mol in tqdm(mol_list):
             prop_list.append(self.calc_mol(mol))
         return pd.DataFrame(prop_list, columns=self.names)
+
+def compare_datasets(
+    train_fp: list,
+    test_fp: list
+) -> list:
+    """
+    Compare two datasets of fingerprints and return the maximum Tanimoto similarity for each test fingerprint.
+
+    :param train_fp: Training set fingerprints.
+    :param test_fp: Test set fingerprints.
+    :return: List of maximum similarity values for each test fingerprint.
+    """
+    nbr_sim_list = []
+    if isinstance(train_fp, pd.Series):
+        train_fp = train_fp.values
+    for fp in test_fp:
+        sim_list = DataStructs.BulkTanimotoSimilarity(fp, train_fp)
+        nbr_sim_list.append(max(sim_list))
+    return nbr_sim_list

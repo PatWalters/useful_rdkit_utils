@@ -144,16 +144,30 @@ def boxplot_base64_image(dist: np.ndarray, x_lim: list[int] = [0, 10]) -> str:
     s = base64.b64encode(s.getvalue()).decode("utf-8").replace("\n", "")
     return '<img align="left" src="data:image/png;base64,%s">' % s
 
-
-def mol_to_base64_image(mol: Chem.Mol, target="html") -> str:
+def mol_to_base64_image(
+    mol: Chem.Mol,
+    target: str = "html",
+    pattern_mol: Chem.Mol = None,
+    width: int = 300,
+    height: int = 150
+) -> str:
     """
-    Convert an RDKit molecule to a base64 encoded image string.
+    Convert an RDKit molecule to a base64 encoded image string, optionally highlighting atoms matching a SMARTS pattern.
 
-    :param mol: The RDKit molecule to convert.
-    :return: The base64 encoded image string.
+    :param mol: RDKit molecule to convert.
+    :param target: Target format for the image, either "html" or "altair".
+    :param pattern_mol: Molecule created from Chem.MolFromSmarts to highlight matching atoms.
+    :param width: Width of the image in pixels.
+    :param height: Height of the image in pixels.
+    :return: Base64 encoded image string.
     """
-    drawer = rdMolDraw2D.MolDraw2DCairo(300, 150)
-    drawer.DrawMolecule(mol)
+    highlight_atoms = []
+    if pattern_mol is not None:
+        match = mol.GetSubstructMatch(pattern_mol)
+        if match:
+            highlight_atoms = list(match)
+    drawer = rdMolDraw2D.MolDraw2DCairo(width, height)
+    drawer.DrawMolecule(mol, highlightAtoms=highlight_atoms)
     drawer.FinishDrawing()
     text = drawer.GetDrawingText()
     im_text64 = base64.b64encode(text).decode('utf8')
@@ -166,18 +180,25 @@ def mol_to_base64_image(mol: Chem.Mol, target="html") -> str:
     return img_str
 
 
-def smi_to_base64_image(smiles: str, target: str = "html") -> str:
+def smi_to_base64_image(
+    smiles: str,
+    target: str = "html",
+    width: int = 300,
+    height: int = 150
+) -> str:
     """
     Convert a SMILES string to a base64 encoded image string.
 
-    :param smiles: The SMILES string to convert.
-    :param target: The target format for the image, either "html" or "altair".
-    :return: The base64 encoded image string.
+    :param smiles: SMILES string to convert.
+    :param target: Target format for the image, either "html" or "altair".
+    :param width: Width of the image in pixels.
+    :param height: Height of the image in pixels.
+    :return: Base64 encoded image string.
     """
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES string {smiles}.")
-    return mol_to_base64_image(mol, target=target)
+    return mol_to_base64_image(mol, target=target, width=width, height=height)
 
 
 # ----------- Align molecules
