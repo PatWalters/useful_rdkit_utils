@@ -32,6 +32,7 @@ class REOS:
         self.active_rule_df = None
         self.rule_df = pd.read_csv(self.rule_path)
         self.read_rules(self.rule_path, active_rules)
+        self.rules_dict = self.get_rules_dict()
 
     def set_output_smarts(self, output_smarts):
         """Determine whether SMARTS are returned
@@ -56,6 +57,7 @@ class REOS:
         self.rule_df['pat'] = smarts_mol_list
         return smarts_are_ok
 
+
     def read_rules(self, rules_file, active_rules=None):
         """Read a rules file
 
@@ -77,6 +79,17 @@ class REOS:
             self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
         else:
             self.active_rule_df = self.rule_df.copy()
+
+    def get_rules_dict(self) -> dict:
+        """Create a dictionary from the rules in rule_df.
+
+        :return: Dictionary with (rule_set_name, description) tuples as keys and smarts as values
+        """
+        rules_dict = {}
+        for _, row in self.rule_df.iterrows():
+            key = (row['rule_set_name'], row['description'])
+            rules_dict[key] = row['smarts']
+        return rules_dict
 
     def set_active_rule_sets(self, active_rules=None):
         """Set the active rule set(s)
