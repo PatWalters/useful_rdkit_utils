@@ -62,6 +62,19 @@ class Smi2Fp:
             fp = self.fpgen.GetFingerprint(mol)
         return fp
 
+    def get_count_fp(self, smiles):
+        """
+        Convert a SMILES string to a Morgan count fingerprint.
+
+        :param smiles: SMILES string
+        :return: Morgan count fingerprint
+        """
+        mol = Chem.MolFromSmiles(smiles)
+        fp = None
+        if mol:
+            fp = self.fpgen.GetCountFingerprint(mol)
+        return fp
+
 
 def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.ExplicitBitVect:
     """
