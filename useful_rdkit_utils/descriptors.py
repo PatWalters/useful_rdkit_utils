@@ -1,7 +1,8 @@
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Any
 
 import numpy as np
 import pandas as pd
+from pandas import Series
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit import RDLogger
@@ -12,6 +13,7 @@ from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
 from rdkit.Chem.rdchem import Mol
 from tqdm.auto import tqdm
+from sklearn.preprocessing import StandardScaler
 
 
 # ----------- Descriptors and fingerprints
@@ -146,31 +148,52 @@ def smi2numpy_fp(smi: str, radius: int = 2, nBits: int = 2048) -> np.ndarray:
 
 
 class RDKitDescriptors:
-    """ Calculate RDKit descriptors"""
+    """Calculate RDKit descriptors for molecules or SMILES.
 
-    def __init__(self: "RDKitDescriptors", hide_progress: bool = False, skip_fragments=False) -> None:
+    Provide methods to compute descriptor vectors for a single molecule or SMILES,
+    and to produce pandas DataFrames for lists of molecules or SMILES.
+
+    Attributes
+    ----------
+    desc_names
+        Sorted list of descriptor names that will be calculated.
+    hide_progress
+        Whether to hide progress bars when processing lists.
+    """
+
+    def __init__(self: "RDKitDescriptors",
+                 desc_names=None,
+                 hide_progress: bool = False,
+                 skip_fragments=False) -> None:
         """
-        Initialize the RDKitDescriptors class.
+        Initialize descriptor calculator.
 
-        :param self: An instance of the RDKitDescriptors class
-        :type self: RDKitDescriptors
-        :param hide_progress: Flag to hide progress bar
-        :type hide_progress: bool
-        :param skip_fragments: Flag to skip fragment descriptors
-        :type skip_fragments: bool
+        :param desc_names: Optional list of descriptor names to use. If not provided, the full RDKit descriptor list is used.
+        :param hide_progress: If true, progress bars are disabled when processing lists.
+        :param skip_fragments: If true, descriptors whose names contain "fr_" are excluded.
         :return: None
-        :rtype: None
         """
         self.hide_progress = hide_progress
-        self.desc_names: List[str] = sorted([x[0] for x in Descriptors.descList])
+        if desc_names is not None:
+            self.desc_names = desc_names
+        else:
+            self.desc_names: List[str] = sorted([x[0] for x in Descriptors.descList])
         if skip_fragments:
             self.desc_names = [x for x in self.desc_names if "fr_" not in x]
 
+    def update_descriptors(self, index_list: List[int]) -> None:
+        """Update the descriptor names to only include those at the specified indices.
+
+        :param index_list: List of indices to keep
+        :return: None
+        """
+        self.desc_names = [self.desc_names[i] for i in index_list]
+
     def calc_mol(self, mol: Mol) -> np.ndarray:
-        """Calculate descriptors for an RDKit molecule
+        """Calculate descriptors for an RDKit molecule.
 
         :param mol: RDKit molecule
-        :return: a numpy array with descriptors
+        :return: A numpy array with descriptor values
         """
         if mol is not None:
             RDLogger.DisableLog('rdApp.warning')
@@ -182,20 +205,19 @@ class RDKitDescriptors:
         return res
 
     def calc_smiles(self, smiles: str) -> np.ndarray:
-        """Calculate descriptors for a SMILES string
+        """Calculate descriptors for a SMILES string.
 
         :param smiles: SMILES string
-        :return: a numpy array with properties
+        :return: A numpy array with descriptor values
         """
         mol = Chem.MolFromSmiles(smiles)
         return self.calc_mol(mol)
 
     def pandas_smiles(self, smiles_list: List[str]) -> pd.DataFrame:
-        """
-        Calculate descriptors for a list of SMILES strings and return them as a pandas DataFrame.
+        """Calculate descriptors for a list of SMILES and return a DataFrame.
 
         :param smiles_list: List of SMILES strings
-        :return: DataFrame with calculated descriptors. Each row corresponds to a SMILES string and each column to a descriptor.
+        :return: DataFrame where each row corresponds to a SMILES and columns are descriptors
         """
         desc_list = []
         for smi in tqdm(smiles_list, disable=self.hide_progress):
@@ -204,17 +226,54 @@ class RDKitDescriptors:
         return df
 
     def pandas_mols(self, mol_list: List[Mol]) -> pd.DataFrame:
-        """
-        Calculate descriptors for a list of RDKit molecules and return them as a pandas DataFrame.
+        """Calculate descriptors for a list of RDKit molecules and return a DataFrame.
 
-        :param mol_list: List of RDKit molecules
-        :return: DataFrame with calculated descriptors. Each row corresponds to a molecule and each column to a descriptor.
+        :param mol_list: List of RDKit molecule objects
+        :return: DataFrame where each row corresponds to a molecule and columns are descriptors
         """
         desc_list = []
         for mol in tqdm(mol_list, disable=self.hide_progress):
             desc_list.append(self.calc_mol(mol))
         df = pd.DataFrame(desc_list, columns=self.desc_names)
         return df
+
+
+def clean_descriptors(desc_in: np.ndarray) -> tuple[np.ndarray | List[int]]:
+    """
+    Remove descriptor columns that contain any NaN or infinite values.
+
+    :param desc_in: Input descriptor array
+    :return: Tuple containing the cleaned descriptor array (only columns with all finite values) and a list of kept column indices
+    """
+    valid_mask = ~np.any(np.isnan(desc_in) | np.isinf(desc_in), axis=0)
+    if not np.any(valid_mask):
+        raise ValueError("All descriptor columns contain NaN or infinite values.")
+    clean_desc = desc_in[:, valid_mask]
+    kept_indices = np.where(valid_mask)[0].tolist()
+    return clean_desc, kept_indices
+
+
+def scale_descriptors(desc_in: pd.DataFrame) -> tuple[Any, StandardScaler]:
+    """Scale descriptor DataFrame using StandardScaler.
+
+    :param desc_in: Input descriptor DataFrame
+    :return: Tuple with the scaled descriptor array and the fitted StandardScaler
+    """
+    scaler = StandardScaler()
+    desc_scaled = scaler.fit_transform(desc_in)
+    return desc_scaled, scaler
+
+
+def clean_and_scale_descriptors(desc_in: pd.DataFrame) -> tuple[Any, StandardScaler]:
+    """
+    Clean and scale a descriptor DataFrame.
+
+    :param desc_in: Input descriptor DataFrame
+    :return: Tuple containing the cleaned and scaled descriptor array and the fitted StandardScaler
+    """
+    desc_clean, _ = clean_descriptors(desc_in)
+    desc_scaled, scaler = scale_descriptors(desc_clean)
+    return desc_scaled, scaler
 
 
 class RDKitProperties:
@@ -367,9 +426,10 @@ class Ro5Calculator:
             prop_list.append(self.calc_mol(mol))
         return pd.DataFrame(prop_list, columns=self.names)
 
+
 def compare_datasets(
-    train_fp: list,
-    test_fp: list
+        train_fp: list,
+        test_fp: list
 ) -> list:
     """
     Compare two datasets of fingerprints and return the maximum Tanimoto similarity for each test fingerprint.
