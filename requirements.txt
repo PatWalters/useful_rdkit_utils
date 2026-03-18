@@ -17,4 +17,4 @@ umap-learn
 rdkit
 
 scikit-learn
-dataclasses
+

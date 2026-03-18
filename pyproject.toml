@@ -26,7 +26,6 @@ dependencies = [
      'scipy',
      'tqdm',
      'scikit-learn',
-     'dataclasses',
      'py3DMol',
 ]
 
