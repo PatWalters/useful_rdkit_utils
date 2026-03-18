@@ -18,4 +18,4 @@ from .scaffold_finder import *
 from .optional import *
 from .sali import *
 
-__version__ = "0.96"
+__version__ = "0.97"
