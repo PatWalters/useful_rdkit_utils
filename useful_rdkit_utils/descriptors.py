@@ -14,6 +14,8 @@ from rdkit.Chem.Descriptors import MolWt, MolLogP, NumHDonors, NumHAcceptors, TP
 from rdkit.Chem.rdchem import Mol
 from tqdm.auto import tqdm
 from sklearn.preprocessing import StandardScaler
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 # ----------- Descriptors and fingerprints
@@ -425,6 +427,15 @@ class Ro5Calculator:
         for mol in tqdm(mol_list):
             prop_list.append(self.calc_mol(mol))
         return pd.DataFrame(prop_list, columns=self.names)
+
+
+def plot_properties(prop_df):
+    figure, axes = plt.subplots(1, len(prop_df.columns), figsize=(15, 5))
+    for idx, col in enumerate(prop_df.columns):
+        ax = sns.histplot(prop_df[col], ax=axes[idx])
+        ax.set_title(col)
+
+    plt.tight_layout()
 
 
 def compare_datasets(
