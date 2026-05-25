@@ -20,6 +20,8 @@ useful_rdkit_utils |release| Documentation
    seaborn
    stats
    units
+   sali
+   model_comparison
 
 Indices and Tables
 ------------------
