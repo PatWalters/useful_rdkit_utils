@@ -26,17 +26,6 @@ End-to-end ML workflows that build on `uru.cross_validate` and `uru.WrapperFacto
 | [compare_mordred_rdkit.ipynb](compare_mordred_rdkit.ipynb) | Benchmark RDKit (~200) vs. Mordred (~1,600) 2D descriptor sets, each paired with LightGBM and a feed-forward NN, on the Biogen ADME dataset. |
 | [bootstrap_AUC.ipynb](bootstrap_AUC.ipynb) | Bootstrap a confidence interval for classifier AUC. |
 
-## Out-of-distribution detection
-
-Reconstruction-error-based OOD detection using a pretrained SMILES autoencoder.
-
-> ⚠️ These notebooks depend on the [`smiles_ae`](https://zenodo.org/records/18846067) package, a pretrained checkpoint, and pre-split datasets that live outside this repo. Paths near the top of each notebook (`MODEL_DIR`, `file_list`) need to be edited for your machine, and a CUDA GPU is assumed.
-
-| Notebook | What it shows |
-|----------|---------------|
-| [evaluate_ood.ipynb](evaluate_ood.ipynb) | Fine-tune the autoencoder per dataset, then compare reconstruction-error distributions on in-distribution test vs. OOD splits. |
-| [evaluate_ood_v2.ipynb](evaluate_ood_v2.ipynb) | Updated variant of the above. |
-
 ## Helper modules
 
 Importable `.py` files used by the notebooks above.
