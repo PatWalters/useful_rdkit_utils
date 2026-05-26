@@ -22,6 +22,7 @@ useful_rdkit_utils |release| Documentation
    units
    sali
    model_comparison
+   descriptor_preprocessor
 
 Indices and Tables
 ------------------

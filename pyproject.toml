@@ -17,13 +17,15 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-     'numpy',	
+     'numpy',
      'rdkit',
      'pandas',
      'pystow',
      'pyarrow',
+     'matplotlib',
      'seaborn',
      'scipy',
+     'statsmodels',
      'tqdm',
      'scikit-learn',
      'py3DMol',

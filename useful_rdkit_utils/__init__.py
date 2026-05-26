@@ -17,5 +17,7 @@ from .split_utils import *
 from .scaffold_finder import *
 from .optional import *
 from .sali import *
+from .model_comparison import *
+from .descriptor_preprocessor import *
 
-__version__ = "0.98"
+__version__ = "1.00"
