@@ -236,7 +236,7 @@ class FFNNRegressor(BaseEstimator, RegressorMixin):
             torch.from_numpy(y_tr.astype(np.float32)),
         )
         train_loader = DataLoader(
-            train_ds, batch_size=self.batch_size, shuffle=True, drop_last=False
+            train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True
         )
 
         self.model_ = _MLP(self.n_features_in_, list(self.hidden_layers), self.dropout).to(self._device)
