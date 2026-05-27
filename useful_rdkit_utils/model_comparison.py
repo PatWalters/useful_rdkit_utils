@@ -145,9 +145,9 @@ def make_tukey_plot(df, y_col, ax=None, method_col="method", xlim=None, title=""
     if xlim:
         ax.set_xlim(xlim)
     if y_col == "r2":
-        ax.set_xlabel("$R^2$")
+        ax.set_xlabel("$R^2$ $\\rightarrow$")
     elif y_col == "mae":
-        ax.set_xlabel("MAE")
+        ax.set_xlabel("$\\leftarrow$ MAE")
     ax.set_title(title)
 
 
@@ -162,19 +162,42 @@ def plot_r2_mae(r2_combo_df, mae_combo_df, figwidth=15, figheight=5):
     """
     figure, axes = plt.subplots(1, 2, figsize=(figwidth, figheight), sharey=True)
     ax = sns.boxplot(y="assay", x="r2", hue="method", data=r2_combo_df, ax=axes[0])
-    ax.set_xlabel("$R^2$")
+    ax.set_xlabel("$R^2$ $\\rightarrow$")
     ax.set_ylabel("Assay")
     ax.get_legend().remove()
     ax = sns.boxplot(y="assay", x="mae", hue="method", data=mae_combo_df, ax=axes[1])
-    ax.set_xlabel("MAE")
+    ax.set_xlabel("$\\leftarrow$ MAE")
     ax.set_ylabel("Assay")
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
     plt.tight_layout()
     plt.close(figure)
     return figure
 
+def plot_tukey(r2_df_list, mae_df_list, r2_xlim=(-1,1), mae_xlim=(0,1), figheight=6, figwidth=8, title=""):
+    """Plot Tukey HSD simultaneous interval plots for R² and MAE side-by-side.
 
-def plot_tukey(df_list, assay_cols, metric="r2", figwidth=8, figheight=8, xlim=None):
+    :param r2_df_list: List of DataFrames, one per assay, each containing columns ``r2`` and ``method`` (long-form per-fold results).
+    :param mae_df_list: List of DataFrames, one per assay, each containing columns ``mae`` and ``method`` (long-form per-fold results).
+    :param r2_xlim: Optional (xmin, xmax) limits for the R² plots (default (-1, 1)).
+    :param mae_xlim: Optional (xmin, xmax) limits for the MAE plots (default (0, 1)).
+    :param figheight: Figure height in inches (default 6).
+    :param figwidth: Figure width in inches (default 8).
+    :param title: Title applied to each subplot.
+    :return: None. The function creates/modifies a matplotlib Figure in-place.
+    """
+    figure, axes = plt.subplots(1, 2, figsize=(15, 5), sharey=True)
+    axes = axes.flatten()
+    for idx, (r2_df, mae_df) in enumerate(zip(r2_df_list, mae_df_list)):
+        uru.make_tukey_plot(r2_df[["r2", "method"]], y_col="r2", ax=axes[idx], xlim=r2_xlim)
+        axes[idx].set_title(title)
+        uru.make_tukey_plot(mae_df[["mae", "method"]], y_col="mae", ax=axes[idx + 1], xlim=mae_xlim)
+        axes[idx + 1].set_title(title)
+    plt.tight_layout()
+    figure.set_size_inches(figwidth, figheight)
+
+
+
+def xplot_tukey(df_list, assay_cols, metric="r2", figwidth=8, figheight=8, xlim=None):
     """Plot Tukey HSD simultaneous confidence intervals across assays.
 
     :param df_list: List of DataFrames, one per assay, each with a metric column and 'method' column.
@@ -188,6 +211,8 @@ def plot_tukey(df_list, assay_cols, metric="r2", figwidth=8, figheight=8, xlim=N
     if xlim is None:
         xlim = (-1, 1) if metric == "r2" else (0, 1)
     fig, axes = plt.subplots(len(df_list), 1, sharex=True)
+    if len(df_list) == 1:
+        axes = [axes]
     for idx, df in enumerate(df_list):
         uru.make_tukey_plot(df[[metric, "method"]], metric, ax=axes[idx], xlim=xlim, title=assay_cols[idx])
     for ax in axes[:-1]:
