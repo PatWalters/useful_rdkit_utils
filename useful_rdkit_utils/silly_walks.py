@@ -7,11 +7,13 @@ from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
 from tqdm import tqdm
 
+
 class SillyWalks:
-    def __init__(self) -> None:
+    def __init__(self, dict_file: str = None) -> None:
         self.fpgen = rdFingerprintGenerator.GetMorganGenerator(radius=2)
         self.count_dict = {}
-        self.load_dict("/Users/pwalters/software/silly_walks/chembl_drugs.smi")
+        if dict_file is not None:
+            self.load_dict(dict_file)
 
     def build_dict(self, df: pd.DataFrame) -> None:
         """
@@ -38,6 +40,19 @@ class SillyWalks:
     def load_dict(self, filename: str) -> None:
         df = pd.read_csv(filename, sep=" ", names=["canonical_smiles", "name"])
         self.build_dict(df)
+
+    def load_json_dict(self, filename: str) -> None:
+        """
+        Load a count dictionary that was saved with ``save_dict`` or ``generate_count_dict``.
+
+        JSON object keys are strings, so the fingerprint bit indices are
+        converted back to ints to match the in-memory representation.
+
+        :param filename: Name of the JSON file containing the count dictionary.
+        """
+        with open(filename) as f:
+            raw_dict = json.load(f)
+        self.count_dict = {int(k): int(v) for k, v in raw_dict.items()}
 
 
 

@@ -13,7 +13,6 @@ sphinx-click
 sphinx-automodapi
 sphinx-rtd-theme
 tqdm
-umap-learn
 rdkit
 
 scikit-learn

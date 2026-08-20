@@ -4,7 +4,6 @@ from rdkit import Chem
 from rdkit.Chem import DataStructs, rdFingerprintGenerator
 from rdkit.Chem.Draw import MolsToGridImage
 import useful_rdkit_utils as uru
-import numpy as np
 from tqdm.auto import tqdm
 
 # Constants for fingerprint generation and calculation
@@ -114,3 +113,9 @@ def plot_sali_pairs(data_frame: pd.DataFrame,
     uru.rd_make_structures_pretty()
 
     return MolsToGridImage(aligned_mols, molsPerRow=mols_per_row, legends=activity_legends)
+
+
+__all__ = [
+    "calculate_sali",
+    "plot_sali_pairs",
+]

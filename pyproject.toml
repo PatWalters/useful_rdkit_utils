@@ -36,7 +36,7 @@ path = "useful_rdkit_utils/__init__.py"
 
 [project.optional-dependencies]
 tests = ['pytest']
-extras = ['umap-learn', 'click']
+extras = ['click']
 
 [project.urls]
 "Homepage" = "https://github.com/PatWalters/useful_rdkit_utils"

@@ -4,6 +4,7 @@ import sys
 import useful_rdkit_utils as uru
 import click
 
+
 @click.command()
 @click.option("--mode", prompt="mode [build|search]", help="[build|search]")
 @click.option("--infile", prompt="Input chemreps file", help="input file")
@@ -17,6 +18,7 @@ def main(mode, infile, outfile):
         uru.create_ring_dictionary(infile, outfile)
     if mode == "search":
         uru.test_ring_system_lookup(infile, outfile)
+
 
 if __name__ == "__main__":
     main()

@@ -23,6 +23,6 @@ To install in development mode, use the following:
 
 .. code-block:: shell
 
-    $ git clone git+https://github.com//useful_rdkit_utils.git
+    $ git clone https://github.com/PatWalters/useful_rdkit_utils.git
     $ cd useful_rdkit_utils
     $ pip install -e .

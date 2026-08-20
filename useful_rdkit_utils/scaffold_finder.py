@@ -42,8 +42,8 @@ def generate_fragments(mol: Mol) -> pd.DataFrame:
     flat_frag_list = [x for x in itertools.chain(*frag_list) if x]
     # The output of Fragment mol is contained in single molecules.  Extract the largest fragment from each molecule
     flat_frag_list = [get_largest_fragment(x) for x in flat_frag_list]
-    # Keep fragments where the number of atoms in the fragment is at least 2/3 of the number fragments in
-    # input molecule
+    # Keep fragments where the number of atoms in the fragment is at least 2/3 of the number of atoms
+    # in the input molecule
     num_mol_atoms = mol.GetNumAtoms()
     flat_frag_list = [x for x in flat_frag_list if x.GetNumAtoms() / num_mol_atoms > 0.67]
     # remove atom map numbers from the fragments
@@ -53,7 +53,7 @@ def generate_fragments(mol: Mol) -> pd.DataFrame:
     # Add the input molecule to the fragment list
     frag_smiles_list.append([Chem.MolToSmiles(mol), mol.GetNumAtoms(), 1])
     # Put the results into a Pandas dataframe
-    frag_df = pd.DataFrame(frag_smiles_list, columns=["Scaffold", "NumAtoms", "NumRgroupgs"])
+    frag_df = pd.DataFrame(frag_smiles_list, columns=["Scaffold", "NumAtoms", "NumRgroups"])
     # Remove duplicate fragments
     frag_df = frag_df.drop_duplicates("Scaffold")
     return frag_df
@@ -80,11 +80,12 @@ def find_scaffolds(df_in: pd.DataFrame, smiles_col="SMILES", name_col="Name",dis
         scaffold_list.append([k, len(v.Name.unique()), v.NumAtoms.values[0]])
     scaffold_df = pd.DataFrame(scaffold_list, columns=["Scaffold", "Count", "NumAtoms"])
     # Any fragment that occurs more times than the number of fragments can't be a scaffold
-    num_df_rows = len(df_in)
+    num_df_rows = len(df_in)  # noqa: F841  (referenced by name inside the query below)
     scaffold_df = scaffold_df.query("Count <= @num_df_rows")
     # Sort scaffolds by frequency
     scaffold_df = scaffold_df.sort_values(["Count", "NumAtoms"], ascending=[False, False])
     return mol_df, scaffold_df
+
 
 def get_molecules_with_scaffold(
     scaffold: str,
@@ -125,6 +126,7 @@ def get_molecules_with_scaffold(
     else:
         return [], merge_df[output_cols]
 
+
 def main():
     """
     Read all SMILES files in the current directory, generate scaffolds, report stats for each scaffold
@@ -149,6 +151,15 @@ def main():
             print(f"Could not find a scaffold for {filename}", file=sys.stderr)
     out_df = pd.DataFrame(out_list, columns=["Filename", "Scaffold", "Count", "Range", "Std"])
     out_df.to_csv("scaffold_stats.csv", index=False)
+
+
+__all__ = [
+    "cleanup_fragment",
+    "generate_fragments",
+    "find_scaffolds",
+    "get_molecules_with_scaffold",
+    "main",
+]
 
 
 if __name__ == "__main__":

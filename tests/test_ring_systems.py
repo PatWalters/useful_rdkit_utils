@@ -1,10 +1,15 @@
 from io import StringIO
+import os
+
 import pandas as pd
 import useful_rdkit_utils as uru
 from tqdm.auto import tqdm
 
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR = os.path.dirname(TEST_DIR)
 
-def test_ring_system_finder():
+
+def test_ring_system_finder(tmp_path):
     buff = r"""SMILES,InChI,Count
 c1ccccc1,UHOVQNZJYSORNB-UHFFFAOYSA-N,12
 c1c[nH]cn1,RAXXELZNTBOGNW-UHFFFAOYSA-N,3
@@ -24,9 +29,10 @@ O=C1O[C@H]2/C=C\CCC[C@H]3C=CCC[C@@H]3C[C@@]23O[C@@H]13,UPDVKQFEWFYNLP-FOQDBRFFSA
     string_fs = StringIO(buff)
     expected_df = pd.read_csv(string_fs)
 
-    chemreps_url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/refs/heads/master/tests/test_chemreps.txt"
-    uru.create_ring_dictionary(chemreps_url, "ring_test.csv")
-    test_df = pd.read_csv("ring_test.csv")
+    chemreps_file = os.path.join(TEST_DIR, "test_chemreps.txt")
+    output_csv = os.path.join(tmp_path, "ring_test.csv")
+    uru.create_ring_dictionary(chemreps_file, output_csv)
+    test_df = pd.read_csv(output_csv)
     test_df.sort_values(["SMILES","InChI"],inplace=True)
     test_df.reset_index(drop=True,inplace=True)
     expected_df.sort_values(["SMILES","InChI"],inplace=True)
@@ -34,10 +40,11 @@ O=C1O[C@H]2/C=C\CCC[C@H]3C=CCC[C@@H]3C[C@@]23O[C@@H]13,UPDVKQFEWFYNLP-FOQDBRFFSA
     pd.testing.assert_frame_equal(test_df, expected_df)
 
 
-def test_ring_system_lookup():
-    url = "https://raw.githubusercontent.com/PatWalters/useful_rdkit_utils/master/data/test.smi"
-    df = pd.read_csv(url, sep=" ", names=["SMILES", "Name"])
-    ring_system_lookup = uru.RingSystemLookup()
+def test_ring_system_lookup(tmp_path):
+    input_filename = os.path.join(REPO_DIR, "data", "test.smi")
+    df = pd.read_csv(input_filename, sep=" ", names=["SMILES", "Name"])
+    ring_csv = os.path.join(REPO_DIR, "data", "chembl_ring_systems.csv")
+    ring_system_lookup = uru.RingSystemLookup(ring_file=ring_csv)
     min_freq_list = []
     for smi in tqdm(df.SMILES):
         freq_list = ring_system_lookup.process_smiles(smi)
@@ -47,5 +54,6 @@ def test_ring_system_lookup():
             res = -1
         min_freq_list.append(res)
     df['min_freq'] = min_freq_list
-    output_filename = "ring_freq_test.csv"
+    output_filename = os.path.join(tmp_path, "ring_freq_test.csv")
     df.to_csv(output_filename, index=False)
+    assert os.path.exists(output_filename)

@@ -161,3 +161,46 @@ def test_max_ring_size():
     mol = Chem.MolFromSmiles("C1CC2(C1)CCC1(CCCC1)CC2")
     max_ring_size = uru.max_ring_size(mol)
     assert max_ring_size == 6
+
+
+def _morgan_fps(smiles_list):
+    return [uru.mol2morgan_fp(Chem.MolFromSmiles(s)) for s in smiles_list]
+
+
+def test_compare_datasets():
+    train_fp = _morgan_fps(["c1ccccc1", "CCO", "CCN"])
+    test_fp = _morgan_fps(["c1ccccc1", "CCCN"])
+    sims = uru.compare_datasets(train_fp, test_fp)
+    assert len(sims) == 2
+    assert sims[0] == 1.0
+    assert 0.0 <= sims[1] <= 1.0
+
+
+def test_compare_datasets_top_n_and_series():
+    train_fp = _morgan_fps(["c1ccccc1", "c1ccccc1C", "CCO"])
+    test_fp = _morgan_fps(["CCN"])
+    max_sim = uru.compare_datasets(pd.Series(train_fp), test_fp, n=1)[0]
+    mean_sim = uru.compare_datasets(pd.Series(train_fp), test_fp, n=3)[0]
+    assert 0.0 <= mean_sim <= max_sim <= 1.0
+
+
+def test_get_scaffold_str_and_mol():
+    from useful_rdkit_utils.split_utils import get_scaffold
+    mol = Chem.MolFromSmiles("Cc1cc(Oc2nccc(CCC)c2)ccc1")
+    assert get_scaffold(Chem.MolToSmiles(mol)) == get_scaffold(mol)
+    assert get_scaffold("CCCC") == "CCCC"
+
+
+def test_pearson_confidence():
+    lower, upper = uru.pearson_confidence(0.5, 20)
+    assert lower < 0.5 < upper
+    assert upper - lower > 0
+
+
+def test_bootstrap_confidence_interval():
+    from sklearn.metrics import r2_score
+    truth = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+    pred = [1.1, 1.9, 3.2, 4.1, 4.8, 6.2, 7.0, 7.9]
+    lower, stat_val, upper = uru.bootstrap_confidence_interval(truth, pred, r2_score, num_iterations=50)
+    assert stat_val == r2_score(truth, pred)
+    assert lower <= stat_val <= upper

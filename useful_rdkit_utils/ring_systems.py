@@ -14,7 +14,7 @@ class RingSystemFinder:
     """A class to identify ring systems """
 
     def __init__(self):
-        """Initialize susbstructure search objects to identify key functionality
+        """Initialize substructure search objects to identify key functionality
         """
         self.ring_db_pat = Chem.MolFromSmarts("[#6R,#16R]=[OR0,SR0,CR0,NR0]")
         self.ring_atom_pat = Chem.MolFromSmarts("[R]")
@@ -67,7 +67,7 @@ class RingSystemFinder:
                         else:
                             atm.SetAtomicNum(1)
                         atm.SetIsotope(0)
-                # Convert explict Hs to implicit
+                # Convert explicit Hs to implicit
                 frag = Chem.RemoveAllHs(frag)
                 frag = self.fix_bond_stereo(frag)
                 ring_system_list.append(frag)
@@ -180,13 +180,16 @@ class RingSystemLookup:
         """
         find ring systems in an RDKit molecule
         :param mol_in: input molecule
-        :return: list of SMILES for ring systems
+        :return: list of (SMILES, frequency) tuples for the ring systems found
         """
+        if mol_in is None:
+            return []
+        # Work on a copy so the caller's molecule is not modified
+        # (tautomer canonicalization is currently disabled; uncomment to enable)
         #mol = self.enumerator.Canonicalize(mol_in)
-        mol = mol_in
-        # mol = mol_in
+        mol = Chem.Mol(mol_in)
         output_ring_list = []
-        if mol:
+        if mol is not None:
             if self.ignore_stereo:
                 Chem.RemoveStereochemistry(mol)
             ring_system_list = self.ring_system_finder.find_ring_systems(mol, as_mols=True)
@@ -239,7 +242,7 @@ def test_ring_system_lookup(input_filename, output_filename):
     :return: None
     """
     df = pd.read_csv(input_filename, sep=" ", names=["SMILES", "Name"])
-    ring_system_lookup = RingSystemLookup.default()
+    ring_system_lookup = RingSystemLookup()
     min_freq_list = []
     for smi in tqdm(df.SMILES):
         freq_list = ring_system_lookup.process_smiles(smi)
@@ -328,6 +331,22 @@ def ring_stats(mol):
     max_size = max_ring_size(mol)
     num_rings = CalcNumRings(mol)
     return num_rings, max_size
+
+
+__all__ = [
+    "RingSystemFinder",
+    "RingSystemLookup",
+    "test_ring_system_finder",
+    "create_ring_dictionary",
+    "build_ring_systems_dataframe",
+    "test_ring_system_lookup",
+    "get_min_ring_frequency",
+    "remove_stereo_from_smiles",
+    "generate_no_stereo_ring_systems",
+    "get_spiro_atoms",
+    "max_ring_size",
+    "ring_stats",
+]
 
 
 

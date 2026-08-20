@@ -67,3 +67,14 @@ def rd_show_atom_indices(state: bool) -> None:
     """
     from rdkit.Chem.Draw import IPythonConsole
     IPythonConsole.drawOptions.addAtomIndices = state
+
+
+__all__ = [
+    "rd_setup_jupyter",
+    "rd_enable_svg",
+    "rd_enable_png",
+    "rd_set_image_size",
+    "rd_make_structures_pretty",
+    "rd_show_cip_stereo",
+    "rd_show_atom_indices",
+]

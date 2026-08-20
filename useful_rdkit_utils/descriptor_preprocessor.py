@@ -22,6 +22,9 @@ def _check_array_allow_nan(X, **kwargs):
     return _sk_check_array(X, **kwargs)
 
 
+__all__ = ["DescriptorPreprocessor"]
+
+
 class DescriptorPreprocessor(BaseEstimator, TransformerMixin):
     """Clean and standardize a molecular descriptor matrix.
 
@@ -94,8 +97,8 @@ class DescriptorPreprocessor(BaseEstimator, TransformerMixin):
     ...               [3.0, 2.0, 7.0, 2.0]])
     >>> pre = DescriptorPreprocessor()
     >>> X_clean = pre.fit_transform(X)
-    >>> X_clean.shape  # constant column dropped, NaN imputed, rest scaled
-    (3, 3)
+    >>> X_clean.shape  # NaN and constant columns dropped (1/3 > 0.2), rest scaled
+    (3, 2)
     """
 
     def __init__(

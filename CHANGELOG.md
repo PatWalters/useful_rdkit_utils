@@ -1,6 +1,45 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Changed
+- Removed the umap-learn dependency: get_t_sne_clusters() in optional.py now uses a two-dimensional t-SNE
+  embedding (scikit-learn) instead of UMAP. get_umap_clusters() is kept as a backward-compatible alias.
+  The extras install no longer includes umap-learn.
+- cross_validate() now performs genuine nested cross-validation (inner CV runs on the outer training set only;
+  models are refit and evaluated on the outer test fold) instead of repeating full-data inner CV. Fold labels are
+  unique per outer round.
+- Renamed the NumRgroupgs column of generate_fragments() to NumRgroups (typo; breaking for consumers of that
+  column name).
+- Renamed the cutoff parameter of taylor_butina_clustering() and get_butina_clusters() to dist_cutoff to make
+  clear it is a distance (1 - Tanimoto similarity), and added range validation.
+- Modules now define __all__, so importing useful_rdkit_utils no longer re-exports third-party modules
+  (np, pd, plt, Chem, ...).
+### Fixed
+- bootstrap_confidence_interval() now bootstraps the supplied stat_function instead of hard-coding roc_auc_score.
+- pearson_confidence() now uses the two-sided z-score for the requested confidence interval.
+- RDKitProperties.pandas_smiles() no longer wraps the column names in an extra list.
+- get_scaffold() now accepts RDKit Molecules (it only worked with SMILES and crashed via MurckoScaffoldSmiles)
+  and handles molecules with no scaffold.
+- mol_to_3D_view() now uses the requested style instead of hard-coding "stick".
+- smi2mol_with_errors() now actually captures RDKit parse errors (RDKit writes to file descriptor 2, which
+  sys.stderr redirection no longer intercepts in current RDKit versions).
+- SillyWalks no longer loads a hard-coded, machine-specific SMILES file on construction; added load_json_dict()
+  so a saved count dictionary round-trips with integer fingerprint-bit keys.
+- get_unit_multiplier() raises a ValueError for unsupported units.
+- REOS.read_rules() now works when active_rules is None (use all rules) instead of crashing.
+- RingSystemLookup.process_mol() no longer mutates the caller's molecule (stereo removal happens on a copy).
+- enumerate_library_sample() stops when every reagent combination has been tried instead of looping forever.
+- plot_r2_mae() and plot_tukey_stats() no longer close the figures they return (they are now displayable in
+  notebooks).
+- plot_properties() no longer crashes on a one-column DataFrame and returns the Figure.
+- mcs_rmsd() returns float("inf") when the molecules share no common substructure, instead of a magic 1e6.
+- refine_conformers() raises a clear error when conformers lack an Energy property.
+- plot_tukey_plot() -> make_tukey_plot() now honours the method_col argument.
+- Tests use the repo data files instead of downloading from GitHub, and no longer write artifacts to the
+  working directory.
+- Fixed the DescriptorPreprocessor doctest expected shape.
+
 ## [0.1.5] - 2021-01-10
 ### Added
 - RDKitDescriptors added to useful_rdkit_utils.py

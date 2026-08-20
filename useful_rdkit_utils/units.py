@@ -1,29 +1,27 @@
 import math
-import sys
 
 
 def get_unit_multiplier(units):
     """
     Function so that I only have to put the unit dictionary in one place
 
-    :param: units: units
-    :return: unit dictionary
+    :param units: units
+    :return: unit multiplier
     """
     multiplier_dict = {"M": 1, "mM": 1e-3, "uM": 1e-6, "nM": 1e-9}
     try:
-        multiplier = multiplier_dict[units]
-        return multiplier
+        return multiplier_dict[units]
     except KeyError:
-        print("Error:", units, "is not supported in ki_to_kcal", file=sys.stderr)
+        raise ValueError(f"{units} is not a supported unit (expected one of {list(multiplier_dict)})")
 
 
 def ki_to_kcal(ic50, units="uM"):
     """
-    convert a Ki or IC50 value in M to kcal/mol
+    convert a Ki or IC50 value to kcal/mol
 
-    :param units: units
-    :param ic50: IC50 value in M
-    :return: IC50 value converted to kcal/mol
+    :param ic50: IC50 value in the units given
+    :param units: units (one of M, mM, uM, nM)
+    :return: value converted to kcal/mol
     """
     multiplier = get_unit_multiplier(units)
     return math.log(ic50 * multiplier) * 0.5961
@@ -40,6 +38,7 @@ def kcal_to_ki(kcal, units="uM"):
     multiplier = get_unit_multiplier(units)
     return math.exp(kcal / 0.5961) / multiplier
 
+
 def ug_ml_to_uM(concentration_ug_ml, molar_mass_da):
     """
     Converts concentration from micrograms per milliliter (ug/mL) to micromolar (uM).
@@ -53,3 +52,11 @@ def ug_ml_to_uM(concentration_ug_ml, molar_mass_da):
     # The formula simplifies to: (concentration_ug_ml / molar_mass_da) * 1000
     concentration_uM = (concentration_ug_ml / molar_mass_da) * 1000
     return concentration_uM
+
+
+__all__ = [
+    "get_unit_multiplier",
+    "ki_to_kcal",
+    "kcal_to_ki",
+    "ug_ml_to_uM",
+]

@@ -66,18 +66,16 @@ class REOS:
             this is None
         :return: None
         """
-        if self.parse_smarts():
-            self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules")
-            if len(self.active_rule_df) == 0:
-                available_rules = sorted(list(self.rule_df["rule_set_name"].unique()))
-                raise ValueError(f"Supplied rules: {active_rules} not available. Please select from {available_rules}")
-
-        else:
+        if not self.parse_smarts():
             print("Error reading rules, please fix the SMARTS errors reported above", file=sys.stderr)
             sys.exit(1)
         if active_rules is not None:
             self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
+            if len(self.active_rule_df) == 0:
+                available_rules = sorted(list(self.rule_df["rule_set_name"].unique()))
+                raise ValueError(f"Supplied rules: {active_rules} not available. Please select from {available_rules}")
         else:
+            # no specific rule set requested: use all rules
             self.active_rule_df = self.rule_df.copy()
 
     def get_rules_dict(self) -> dict:
@@ -171,7 +169,7 @@ class REOS:
         """
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
-            print(f"Error parsing SMILES {smiles}")
+            print(f"Error parsing SMILES {smiles}", file=sys.stderr)
             return None
         return self.process_mol(mol)
 
@@ -204,3 +202,6 @@ class REOS:
         else:
             column_names = ['rule_set_name', 'description']
         return pd.DataFrame(results, columns=column_names)
+
+
+__all__ = ["REOS"]

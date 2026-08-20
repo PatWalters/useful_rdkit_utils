@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from scipy.stats import pearsonr
-from sklearn.metrics import roc_auc_score
 from sklearn.utils import resample
 
 
@@ -29,11 +28,11 @@ def bootstrap_confidence_interval(truth: List[float], pred: List[float],
     stat_list = []
     for _ in range(0, num_iterations):
         sample_df = resample(result_df)
-        stat_list.append(roc_auc_score(sample_df.truth, sample_df.pred))
+        stat_list.append(stat_function(sample_df.truth.tolist(), sample_df.pred.tolist()))
     return np.percentile(stat_list, lb), stat_val, np.percentile(stat_list, ub)
 
 
-def pearson_confidence(r: int, num: int, interval: float = 0.95) -> Tuple[float, float]:
+def pearson_confidence(r: float, num: int, interval: float = 0.95) -> Tuple[float, float]:
     """
     Calculate upper and lower 95% CI for a Pearson r (not R**2)
     Inspired by https://stats.stackexchange.com/questions/18887
@@ -44,7 +43,7 @@ def pearson_confidence(r: int, num: int, interval: float = 0.95) -> Tuple[float,
     :return: lower bound, upper bound
     """
     stderr = 1.0 / math.sqrt(num - 3)
-    z_score = norm.ppf(interval)
+    z_score = norm.ppf(1.0 - (1.0 - interval) / 2.0)
     delta = z_score * stderr
     lower = math.tanh(math.atanh(r) - delta)
     upper = math.tanh(math.atanh(r) + delta)
@@ -70,3 +69,10 @@ def max_possible_correlation(vals: List[float], error: float = 1 / 3.0,
             noisy_vals.append(val + np.random.normal(0, error))
         cor_list.append(method(vals, noisy_vals)[0])
     return np.mean(cor_list)
+
+
+__all__ = [
+    "bootstrap_confidence_interval",
+    "pearson_confidence",
+    "max_possible_correlation",
+]

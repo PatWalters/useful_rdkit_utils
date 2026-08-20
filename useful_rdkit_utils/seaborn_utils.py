@@ -1,6 +1,7 @@
 
 import seaborn as sns
 
+
 def set_sns_defaults()  -> None:
     """Set seaborn plots defaults"""
     sns.set(rc={'figure.figsize': (10, 10)})
@@ -9,11 +10,17 @@ def set_sns_defaults()  -> None:
 
 
 def set_sns_size(width, height) -> None:
-    """Set seaborn plot slize
+    """Set seaborn plot size
 
     :param width: width of the plot
     :param height: height of the plot
     :return: None
     """
     sns.set(rc={'figure.figsize': (width, height)})
+
+
+__all__ = [
+    "set_sns_defaults",
+    "set_sns_size",
+]
 

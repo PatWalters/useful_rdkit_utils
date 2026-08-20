@@ -2,11 +2,9 @@ from typing import List, Optional, Callable, Any
 
 import numpy as np
 import pandas as pd
-from pandas import Series
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit import RDLogger
-from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem import rdMolDescriptors
@@ -113,7 +111,7 @@ def smi2morgan_fp(smi: str, radius: int = 2, nBits: int = 2048) -> Optional[Data
     mol = Chem.MolFromSmiles(smi)
     fp = None
     if mol:
-        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nBits)
+        fp = mol2morgan_fp(mol, radius=radius, nBits=nBits)
     return fp
 
 
@@ -318,7 +316,7 @@ class RDKitProperties:
         prop_list = []
         for smi in tqdm(smi_list):
             prop_list.append(self.calc_smiles(smi))
-        return pd.DataFrame(prop_list, columns=[self.property_names])
+        return pd.DataFrame(prop_list, columns=self.property_names)
 
     def pandas_mols(self, mol_list: List[Mol]) -> pd.DataFrame:
         """
@@ -429,30 +427,60 @@ class Ro5Calculator:
         return pd.DataFrame(prop_list, columns=self.names)
 
 
-def plot_properties(prop_df):
-    figure, axes = plt.subplots(1, len(prop_df.columns), figsize=(15, 5))
+def plot_properties(prop_df: pd.DataFrame) -> plt.Figure:
+    """Plot a histogram for each numeric column of a properties DataFrame.
+
+    :param prop_df: DataFrame of properties (one column per property).
+    :return: the matplotlib Figure.
+    """
+    figure, axes = plt.subplots(1, len(prop_df.columns), figsize=(15, 5), squeeze=False)
     for idx, col in enumerate(prop_df.columns):
         ax = sns.histplot(prop_df[col], ax=axes[idx])
         ax.set_title(col)
 
     plt.tight_layout()
+    return figure
 
 
 def compare_datasets(
         train_fp: list,
-        test_fp: list
-) -> list:
+        test_fp: list,
+        n: int = 1
+) -> list[float]:
     """
-    Compare two datasets of fingerprints and return the maximum Tanimoto similarity for each test fingerprint.
+    Compare two datasets of fingerprints and return the mean of the top-n Tanimoto
+    similarities for each test fingerprint.
 
     :param train_fp: Training set fingerprints.
     :param test_fp: Test set fingerprints.
-    :return: List of maximum similarity values for each test fingerprint.
+    :param n: Number of most similar neighbors to average (default 1).
+    :return: List of mean similarity values for each test fingerprint.
     """
-    nbr_sim_list = []
+    nbr_sim_list: list[float] = []
     if isinstance(train_fp, pd.Series):
         train_fp = train_fp.values
     for fp in test_fp:
         sim_list = DataStructs.BulkTanimotoSimilarity(fp, train_fp)
-        nbr_sim_list.append(max(sim_list))
+        if not sim_list:
+            nbr_sim_list.append(float(np.nan))
+            continue
+        top_n = sorted(sim_list, reverse=True)[:max(1, n)]
+        nbr_sim_list.append(float(np.mean(top_n)))
     return nbr_sim_list
+
+
+__all__ = [
+    "Smi2Fp",
+    "mol2morgan_fp",
+    "smi2morgan_fp",
+    "mol2numpy_fp",
+    "smi2numpy_fp",
+    "RDKitDescriptors",
+    "clean_descriptors",
+    "scale_descriptors",
+    "clean_and_scale_descriptors",
+    "RDKitProperties",
+    "Ro5Calculator",
+    "plot_properties",
+    "compare_datasets",
+]

@@ -51,8 +51,12 @@ def enumerate_library_sample(rxn: ChemicalReaction, reagent_lol: List[List[Mol]]
     used = set()
     prod_list = []
     count = 0
+    total_combinations = int(np.prod([len(x) for x in reagent_lol]))
     with tqdm(total=num_to_generate) as pbar:
         while True:
+            # stop if every reagent combination has already been tried
+            if len(used) >= total_combinations:
+                break
             mol_list = [np.random.choice(x) for x in reagent_lol]
             name_list = [x.GetProp("_Name") for x in mol_list]
             mol_name = "_".join(name_list)
@@ -91,6 +95,14 @@ def reaction_demo():
     sample_df = enumerate_library_sample(rxn, [df.mol.values for df in df_list], 1000)
     all_df = enumerate_library(rxn, [df.mol.values[:10] for df in df_list])
     print(len(sample_df), len(all_df))
+
+
+__all__ = [
+    "enumerate_library",
+    "enumerate_library_sample",
+    "add_molecule_name",
+    "reaction_demo",
+]
 
 
 if __name__ == "__main__":

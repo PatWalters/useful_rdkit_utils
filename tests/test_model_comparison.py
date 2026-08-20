@@ -132,6 +132,16 @@ def test_make_tukey_plot_creates_axes_if_none(cv_results):
     plt.close("all")
 
 
+def test_make_tukey_plot_custom_method_col(cv_results):
+    r2_df, _ = uru.get_performance_stats(
+        cv_results, y_col="y", method_list=["method_a", "method_b", "method_c"]
+    )
+    df = r2_df.rename(columns={"method": "approach"})
+    fig, ax = plt.subplots()
+    uru.make_tukey_plot(df, y_col="r2", ax=ax, method_col="approach")
+    plt.close(fig)
+
+
 def test_plot_r2_mae(cv_results):
     r2_df, mae_df = uru.get_performance_stats(
         cv_results, y_col="y", method_list=["method_a", "method_b"]

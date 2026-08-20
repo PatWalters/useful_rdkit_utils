@@ -29,6 +29,7 @@ def add_molecule_and_errors(df_in, smiles_col='SMILES', mol_col_name='ROMol', er
     """
     df_in[[mol_col_name, error_col_name]] = df_in[smiles_col].apply(useful_rdkit_utils.smi2mol_with_errors).to_list()
 
+
 def split_dataframe(df, chunk_size = 10000):
     chunks = list()
     num_chunks = len(df) // chunk_size + 1
@@ -36,5 +37,14 @@ def split_dataframe(df, chunk_size = 10000):
         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
     return chunks
 
+
 def get_dataframe_nans(df):
     return df[df.isnull().any(axis=1)]
+
+
+__all__ = [
+    "value_counts_df",
+    "add_molecule_and_errors",
+    "split_dataframe",
+    "get_dataframe_nans",
+]

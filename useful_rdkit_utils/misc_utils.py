@@ -1,7 +1,6 @@
 import base64
 import io
-import sys
-from io import StringIO
+import os
 from operator import itemgetter
 from typing import List
 from typing import Tuple
@@ -23,14 +22,32 @@ from rdkit.Chem.rdFMCS import FindMCS
 def smi2mol_with_errors(smi: str) -> Tuple[Mol, str]:
     """ Parse SMILES and return any associated errors or warnings
 
+    RDKit writes parse errors to file descriptor 2 (C++ stderr), which is not
+    captured by assigning to ``sys.stderr``, so the descriptor itself is
+    temporarily redirected to a pipe while parsing.
+
     :param smi: input SMILES
     :return: tuple of RDKit molecule, warning or error
     """
-    sio = sys.stderr = StringIO()
-    mol = Chem.MolFromSmiles(smi)
-    err = sio.getvalue()
-    sio = sys.stderr = StringIO()
-    sys.stderr = sys.__stderr__
+    saved_fd = os.dup(2)
+    read_fd, write_fd = os.pipe()
+    os.dup2(write_fd, 2)
+    try:
+        try:
+            mol = Chem.MolFromSmiles(smi)
+        finally:
+            os.dup2(saved_fd, 2)
+            os.close(write_fd)
+        chunks = []
+        while True:
+            chunk = os.read(read_fd, 4096)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        err = b"".join(chunks).decode(errors="replace")
+    finally:
+        os.close(read_fd)
+        os.close(saved_fd)
     return mol, err
 
 
@@ -57,19 +74,22 @@ def get_largest_fragment(mol: Mol) -> Mol:
 
 # ----------- Clustering
 # https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GroupShuffleSplit.html
-def taylor_butina_clustering(fp_list: List[DataStructs.ExplicitBitVect], cutoff: float = 0.65) -> List[int]:
+def taylor_butina_clustering(fp_list: List[DataStructs.ExplicitBitVect], dist_cutoff: float = 0.65) -> List[int]:
     """Cluster a set of fingerprints using the RDKit Taylor-Butina implementation
 
     :param fp_list: a list of fingerprints
-    :param cutoff: distance cutoff (1 - Tanimoto similarity)
+    :param dist_cutoff: distance cutoff (1 - Tanimoto similarity); e.g. 0.65 keeps
+        together compounds with Tanimoto similarity >= 0.35. Must be in (0, 1].
     :return: a list of cluster ids
     """
+    if not 0.0 < dist_cutoff <= 1.0:
+        raise ValueError("dist_cutoff must be in (0, 1]; note it is a distance (1 - Tanimoto similarity)")
     dists = []
     nfps = len(fp_list)
     for i in range(1, nfps):
         sims = DataStructs.BulkTanimotoSimilarity(fp_list[i], fp_list[:i])
         dists.extend([1 - x for x in sims])
-    cluster_res = Butina.ClusterData(dists, nfps, cutoff, isDistData=True)
+    cluster_res = Butina.ClusterData(dists, nfps, dist_cutoff, isDistData=True)
     cluster_id_list = np.zeros(nfps, dtype=int)
     for cluster_num, cluster in enumerate(cluster_res):
         for member in cluster:
@@ -143,6 +163,7 @@ def boxplot_base64_image(dist: np.ndarray, x_lim: list[int] = [0, 10]) -> str:
     plt.close()
     s = base64.b64encode(s.getvalue()).decode("utf-8").replace("\n", "")
     return '<img align="left" src="data:image/png;base64,%s">' % s
+
 
 def mol_to_base64_image(
     mol: Chem.Mol,
@@ -256,7 +277,7 @@ def mcs_align(smiles_list):
     """
     # convert the SMILES to RDKit molecules
     mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
-    # define the parameters for the MCS calculation, if we're aligning it's import that the MCS only contains complete rings
+    # define the parameters for the MCS calculation, if we're aligning it's important that the MCS only contains complete rings
     params = Chem.rdFMCS.MCSParameters()
     params.BondCompareParameters.CompleteRingsOnly = True
     params.AtomCompareParameters.CompleteRingsOnly = True
@@ -270,3 +291,21 @@ def mcs_align(smiles_list):
     [AllChem.GenerateDepictionMatching2DStructure(m, qmol) for m in mol_list]
     # Draw the molecules, highlighting the MCS
     return mol_list
+
+
+__all__ = [
+    "smi2mol_with_errors",
+    "count_fragments",
+    "get_largest_fragment",
+    "taylor_butina_clustering",
+    "label_atoms",
+    "tag_atoms",
+    "rd_shut_the_hell_up",
+    "demo_block_logs",
+    "boxplot_base64_image",
+    "mol_to_base64_image",
+    "smi_to_base64_image",
+    "remove_dummy_atoms",
+    "align_mols_to_template",
+    "mcs_align",
+]

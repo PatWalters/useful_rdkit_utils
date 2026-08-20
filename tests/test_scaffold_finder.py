@@ -31,7 +31,7 @@ def test_generate_fragments():
     mol = Chem.MolFromSmiles("c1ccc(-c2ccccc2)cc1")
     frag_df = uru.generate_fragments(mol)
     assert isinstance(frag_df, pd.DataFrame)
-    assert set(frag_df.columns) == {"Scaffold", "NumAtoms", "NumRgroupgs"}
+    assert set(frag_df.columns) == {"Scaffold", "NumAtoms", "NumRgroups"}
     # The whole molecule should be in the fragment list
     assert Chem.MolToSmiles(mol) in frag_df["Scaffold"].tolist()
 

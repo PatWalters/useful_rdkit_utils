@@ -91,6 +91,7 @@ class WrapperFactory:
 
         return type(class_name, (object,), class_attributes)
 
+
 def get_performance_stats(df: pd.DataFrame, y_col: str, method_list: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Calculate R^2 and MAE statistics for each method in the method list.
@@ -118,6 +119,7 @@ def get_performance_stats(df: pd.DataFrame, y_col: str, method_list: list[str]) 
     mae_melt_df.columns = ["method", "mae"]
     return r2_melt_df, mae_melt_df
 
+
 def make_tukey_plot(df, y_col, ax=None, method_col="method", xlim=None, title=""):
     """Draw a Tukey HSD "simultaneous" plot comparing methods on a metric.
 
@@ -137,10 +139,8 @@ def make_tukey_plot(df, y_col, ax=None, method_col="method", xlim=None, title=""
     if ax is None:
         figure, ax = plt.subplots(1, 1)
     tukey = pairwise_tukeyhsd(endog=df[y_col], groups=df[method_col], alpha=0.05)
-    ascending = False
-    if y_col == "mae":
-        ascending = True
-    best = df.groupby("method").mean().reset_index().sort_values(y_col, ascending=ascending)[method_col].values[0]
+    ascending = y_col == "mae"
+    best = df.groupby(method_col)[y_col].mean().sort_values(ascending=ascending).index[0]
     _ = tukey.plot_simultaneous(comparison_name=best, ax=ax)
     if xlim:
         ax.set_xlim(xlim)
@@ -170,7 +170,6 @@ def plot_r2_mae(r2_combo_df, mae_combo_df, figwidth=15, figheight=5):
     ax.set_ylabel("Assay")
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
     plt.tight_layout()
-    plt.close(figure)
     return figure
 
 
@@ -201,9 +200,17 @@ def plot_tukey_stats(r2_df_list, mae_df_list, assay_list, r2_xlim=(-1, 1), mae_x
         figure.suptitle(assay, y=title_height)
         figure.set_size_inches(fig_width, fig_height)
         plt.tight_layout()
-        plt.close(figure)
         figures.append(figure)
     return figures
+
+
+__all__ = [
+    "WrapperFactory",
+    "get_performance_stats",
+    "make_tukey_plot",
+    "plot_r2_mae",
+    "plot_tukey_stats",
+]
 
 
 

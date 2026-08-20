@@ -71,6 +71,7 @@ def gen_conformers(mol: Mol, num_confs: int = 50) -> Optional[Mol]:
         print(f"Error generating conformers: {e}")
         return None
 
+
 def refine_conformers(mol: Mol, energy_threshold: float = 50, rms_threshold: Optional[float] = 0.5) -> Mol:
     """
     Refine the conformers of a molecule by removing those with high energy or low RMSD.
@@ -81,11 +82,18 @@ def refine_conformers(mol: Mol, energy_threshold: float = 50, rms_threshold: Opt
                           If None, RMSD filtering is skipped.
     :return: RDKit molecule with refined conformers.
     """
-    energy_list = [None] * mol.GetNumConformers()
-    for i in range(0, mol.GetNumConformers()):
-        conf = mol.GetConformer(i)
+    num_confs = mol.GetNumConformers()
+    if num_confs == 0:
+        raise ValueError("Molecule must have at least one conformer")
+    missing = [conf.GetId() for conf in mol.GetConformers() if not conf.HasProp("Energy")]
+    if missing:
+        raise ValueError(
+            f"Conformers {missing} have no 'Energy' property; generate/optimise conformers first (e.g. gen_conformers)"
+        )
+    energy_list = [None] * num_confs
+    for conf in mol.GetConformers():
         conf_idx = conf.GetId()
-        energy_list[conf_idx] = float(conf.GetProp("Energy"))
+        energy_list[conf_idx] = float(conf.GetDoubleProp("Energy"))
     energy_array = np.array(energy_list)
     min_energy = min(energy_list)
     energy_array -= min_energy
@@ -101,6 +109,7 @@ def refine_conformers(mol: Mol, energy_threshold: float = 50, rms_threshold: Opt
         for i in rms_remove_idx:
             mol.RemoveConformer(int(i))
     return mol
+
 
 def get_conformer_energies(mol: Mol) -> List[float]:
     """
@@ -120,14 +129,15 @@ def mcs_rmsd(mol_1: Mol, mol_2: Mol, id_1: int = 0, id_2: int = 0) -> Tuple[int,
     :param mol_2: Second RDKit molecule
     :param id_1: Conformer ID for the first molecule
     :param id_2: Conformer ID for the second molecule
-    :return: A tuple containing the number of MCS atoms and the RMSD value
+    :return: A tuple containing the number of MCS atoms and the RMSD value.
+        If the molecules share no common substructure, the RMSD is float("inf").
     """
     mcs_res = FindMCS([mol_1, mol_2])
     num_mcs_atoms = mcs_res.numAtoms
     pat = Chem.MolFromSmarts(mcs_res.smartsString)
     match_1 = mol_1.GetSubstructMatches(pat)
     match_2 = mol_2.GetSubstructMatches(pat)
-    min_rmsd = 1e6
+    min_rmsd = float("inf")
     for m1 in match_1:
         for m2 in match_2:
             crd_1 = mol_1.GetConformer(id_1).GetPositions()[list(m1)]
@@ -147,12 +157,11 @@ def mol_to_3D_view(mol_list, size=(300, 300), style="stick", surface=False, opac
     :mol_list: list[rdMol], a list of rdMols to show
     :size: tuple(int, int), canvas size
     :style: str, type of drawing molecule,
-        style can be 'line', 'stick', 'sphere', 'carton'
+        style can be 'line', 'stick', 'sphere', 'cartoon'
     :surface: bool, display SAS
     :opacity: float, opacity of surface, range 0.0-1.0
     :return: viewer: py3Dmol.view, a class for constructing embedded 3Dmol.js views in ipython notebooks.
     """
-    import py3Dmol
     assert style in ('line', 'stick', 'sphere', 'cartoon')
 
     colors = ["lightgray", "pink", "lightgreen", "magenta", "cyan", "orange", "purple"]
@@ -163,8 +172,20 @@ def mol_to_3D_view(mol_list, size=(300, 300), style="stick", surface=False, opac
         color_idx = i % len(colors)
         mblock = Chem.MolToMolBlock(mol)
         viewer.addModel(mblock, 'mol')
-        viewer.setStyle({'model': i}, {'stick': {'colorscheme': f'{colors[color_idx]}Carbon'}})
+        viewer.setStyle({'model': i}, {style: {'colorscheme': f'{colors[color_idx]}Carbon'}})
     if surface:
         viewer.addSurface(py3Dmol.SAS, {'opacity': opacity})
     viewer.zoomTo()
     return viewer
+
+
+__all__ = [
+    "get_center",
+    "get_shape_moments",
+    "gen_3d",
+    "gen_conformers",
+    "refine_conformers",
+    "get_conformer_energies",
+    "mcs_rmsd",
+    "mol_to_3D_view",
+]
