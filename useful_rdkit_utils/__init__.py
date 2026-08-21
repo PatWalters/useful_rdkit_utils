@@ -19,5 +19,6 @@ from .optional import *
 from .sali import *
 from .model_comparison import *
 from .descriptor_preprocessor import *
+from .silly_walks import *
 
 __version__ = "1.00"

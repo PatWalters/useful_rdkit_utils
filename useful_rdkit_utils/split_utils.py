@@ -66,7 +66,7 @@ def get_scaffold(smi: Union[str, Mol]) -> str:
     return scaffold
 
 
-def get_random_clusters(smiles_list: List[str]) -> List[int]:
+def get_random_clusters(smiles_list: List[str]) -> np.ndarray:
     """
     Assign every SMILES to its own unique group.
 
@@ -75,27 +75,27 @@ def get_random_clusters(smiles_list: List[str]) -> List[int]:
     same fold.
 
     :param smiles_list: A list of SMILES strings.
-    :return: A list of integers from 0 to the length of the input list.
+    :return: Array of integers from 0 to the length of the input list.
     """
-    return list(range(0, len(smiles_list)))
+    return np.arange(len(smiles_list))
 
 
 
 
 
-def get_butina_clusters(smiles_list: List[str], dist_cutoff: float = 0.65) -> List[int]:
+def get_butina_clusters(smiles_list: List[str], dist_cutoff: float = 0.65) -> np.ndarray:
     """
     Cluster a list of SMILES strings using the Butina clustering algorithm.
 
     :param smiles_list: List of SMILES strings
     :param dist_cutoff: distance cutoff (1 - Tanimoto similarity), see
         :func:`useful_rdkit_utils.taylor_butina_clustering`
-    :return: List of cluster labels corresponding to each SMILES string in the input list.
+    :return: Array of cluster labels corresponding to each SMILES string in the input list.
     """
     mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
     fg = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
     fp_list = [fg.GetFingerprint(x) for x in mol_list]
-    return taylor_butina_clustering(fp_list, dist_cutoff=dist_cutoff)
+    return np.asarray(taylor_butina_clustering(fp_list, dist_cutoff=dist_cutoff))
 
 
 def get_bemis_murcko_clusters(smiles_list: List[str]) -> np.ndarray:
@@ -158,14 +158,16 @@ def cross_validate(df: pd.DataFrame,
     input_cols = df.columns
     for group_name, group_func in group_list:
         # assign groups based on cluster, scaffold, etc
-        outer_group = group_func(df.SMILES)
+        # group_func is user supplied and may return a list, so normalise to an array:
+        # pd.unique() on a plain list is deprecated and will raise in a future pandas
+        outer_group = np.asarray(group_func(df.SMILES))
         outer_splits = min(n_outer, len(pd.unique(outer_group)))
         outer_kf = GroupKFoldShuffle(n_splits=outer_splits, shuffle=True, random_state=random_state)
         for i, [outer_train_idx, outer_test_idx] in enumerate(
                 tqdm(outer_kf.split(df, groups=outer_group), total=outer_splits, desc=group_name, leave=False)):
             outer_train = df.iloc[outer_train_idx].copy()
             outer_test = df.iloc[outer_test_idx].copy()
-            inner_group = group_func(outer_train.SMILES)
+            inner_group = np.asarray(group_func(outer_train.SMILES))
             inner_splits = min(n_inner, len(pd.unique(inner_group)))
             inner_random_state = None if random_state is None else random_state + 1000 * (i + 1)
             inner_kf = GroupKFoldShuffle(n_splits=inner_splits, shuffle=True, random_state=inner_random_state)

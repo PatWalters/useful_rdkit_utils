@@ -57,17 +57,23 @@ class SillyWalks:
 
 
     def score(self, smiles_in):
+        """Fraction of a molecule's fingerprint bits that are absent from the count dictionary.
+
+        :param smiles_in: SMILES string to score
+        :return: fraction of unseen bits, from 0.0 (all bits known) to 1.0. A SMILES
+            that will not parse scores 1; a molecule with no fingerprint bits at all
+            (an empty SMILES) scores 0, having nothing unusual in it.
+        """
         mol = Chem.MolFromSmiles(smiles_in)
-        if mol:
-            fp = self.fpgen.GetFingerprint(mol)
-            on_bits = fp.GetOnBits()
-            silly_bits = [
-                x for x in [self.count_dict.get(x) for x in on_bits] if x is None
-            ]
-            score = len(silly_bits) / len(on_bits)
-        else:
-            score = 1
-        return score
+        if mol is None:
+            return 1
+        fp = self.fpgen.GetFingerprint(mol)
+        on_bits = list(fp.GetOnBits())
+        if not on_bits:
+            # an empty molecule has no bits to be unusual
+            return 0
+        silly_bits = [x for x in on_bits if x not in self.count_dict]
+        return len(silly_bits) / len(on_bits)
 
     @staticmethod
     def generate_count_dict(input_file: str, output_file: str) -> None:
@@ -90,6 +96,9 @@ class SillyWalks:
 
         with open(output_file, 'w') as f:
             json.dump(count_dict, f)
+
+
+__all__ = ["SillyWalks"]
 
 
 def main():

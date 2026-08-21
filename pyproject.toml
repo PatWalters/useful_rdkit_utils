@@ -13,6 +13,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -21,7 +24,6 @@ dependencies = [
      'rdkit',
      'pandas',
      'pystow',
-     'pyarrow',
      'matplotlib',
      'seaborn',
      'scipy',
@@ -36,7 +38,28 @@ path = "useful_rdkit_utils/__init__.py"
 
 [project.optional-dependencies]
 tests = ['pytest']
+# click backs the build_ring_dictionary command
 extras = ['click']
+# the rd_* helpers in jupyter_utils configure RDKit's notebook rendering, which
+# RDKit implements on top of IPython
+jupyter = ['ipython']
+all = ['click', 'ipython']
+docs = [
+    'sphinx',
+    'sphinx-autodoc-typehints',
+    'sphinx-click',
+    'sphinx-automodapi',
+    'sphinx-rtd-theme',
+]
+
+[project.scripts]
+build_ring_dictionary = "useful_rdkit_utils.build_ring_dictionary:main"
+silly_walks = "useful_rdkit_utils.silly_walks:main"
+
+[tool.pytest.ini_options]
+markers = [
+    "network: test downloads data from the internet; deselect with -m 'not network'",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/PatWalters/useful_rdkit_utils"

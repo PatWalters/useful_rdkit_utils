@@ -1,5 +1,7 @@
-import pandas as pd
+import warnings
 from itertools import combinations
+
+import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import DataStructs, rdFingerprintGenerator
 from rdkit.Chem.Draw import MolsToGridImage
@@ -22,10 +24,21 @@ def calculate_sali(data_frame: pd.DataFrame, smiles_col: str = 'SMILES',
     :param activity_col: The name of the column containing activity values.
     :return: DataFrame containing pairwise SALI values and metadata.
     """
-    # Prepare data lists
-    smiles_strings = data_frame[smiles_col].tolist()
-    activities = data_frame[activity_col].tolist()
-    molecules = [Chem.MolFromSmiles(smi) for smi in smiles_strings]
+    # Prepare data lists, dropping anything that will not parse. The pairwise loop
+    # below is O(n^2), so it is worth finding out about bad input before starting it
+    # rather than failing partway through.
+    parsed = [(smi, act, Chem.MolFromSmiles(smi))
+              for smi, act in zip(data_frame[smiles_col], data_frame[activity_col])]
+    failed = [smi for smi, _, mol in parsed if mol is None]
+    if failed:
+        shown = ", ".join(failed[:5]) + (", ..." if len(failed) > 5 else "")
+        warnings.warn(f"Skipping {len(failed)} SMILES that could not be parsed: {shown}", stacklevel=2)
+    parsed = [row for row in parsed if row[2] is not None]
+    if not parsed:
+        raise ValueError(f"None of the SMILES in column '{smiles_col}' could be parsed")
+    smiles_strings = [smi for smi, _, _ in parsed]
+    activities = [act for _, act, _ in parsed]
+    molecules = [mol for _, _, mol in parsed]
 
     # Generate fingerprints
     fingerprint_generator = rdFingerprintGenerator.GetMorganGenerator(radius=MORGAN_RADIUS, fpSize=MORGAN_FP_SIZE)

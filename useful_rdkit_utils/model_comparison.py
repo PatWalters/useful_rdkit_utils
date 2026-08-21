@@ -51,16 +51,30 @@ class WrapperFactory:
             """Instantiate the wrapped model and remember the target column."""
             self.model = model_class(**model_kwargs)
             self.y_col = y_col
-            self.fp_name = "fp"
             self.descriptor_dict = descriptor_dict
+
+        def descriptor_matrix(self, df):
+            """Look up the descriptor for every SMILES in ``df`` and stack them.
+
+            Built as a local array rather than written back as a column, so the
+            caller's DataFrame is left untouched.
+
+            :param df: DataFrame with a ``SMILES`` column.
+            :raises KeyError: if any SMILES is absent from ``descriptor_dict``.
+            :return: 2D array of descriptors, one row per row of ``df``.
+            """
+            missing = [smi for smi in df.SMILES if smi not in self.descriptor_dict]
+            if missing:
+                shown = ", ".join(missing[:5]) + (", ..." if len(missing) > 5 else "")
+                raise KeyError(f"{len(missing)} SMILES missing from descriptor_dict: {shown}")
+            return np.stack([self.descriptor_dict[smi] for smi in df.SMILES])
 
         def fit(self, train):
             """Fit the wrapped model on ``train`` using ``descriptor_dict``.
 
             :param train: DataFrame with a ``SMILES`` column and ``self.y_col``.
             """
-            train[self.fp_name] = train.SMILES.map(self.descriptor_dict)
-            self.model.fit(np.stack(train[self.fp_name]), train[self.y_col])
+            self.model.fit(self.descriptor_matrix(train), train[self.y_col])
 
         def predict(self, test):
             """Predict ``self.y_col`` for the rows in ``test``.
@@ -68,9 +82,7 @@ class WrapperFactory:
             :param test: DataFrame with a ``SMILES`` column.
             :return: 1D array of predictions aligned with ``test``.
             """
-            test[self.fp_name] = test.SMILES.map(self.descriptor_dict)
-            pred = self.model.predict(np.stack(test[self.fp_name]))
-            return pred
+            return self.model.predict(self.descriptor_matrix(test))
 
         def validate(self, train, test):
             """Fit on ``train`` then predict ``test`` in one call.
@@ -84,6 +96,7 @@ class WrapperFactory:
 
         class_attributes = {
             "__init__": __init__,
+            "descriptor_matrix": descriptor_matrix,
             "fit": fit,
             "predict": predict,
             "validate": validate

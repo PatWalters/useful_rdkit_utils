@@ -1,4 +1,4 @@
-from typing import List, Optional, Callable, Any
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,26 @@ import matplotlib.pyplot as plt
 
 
 # ----------- Descriptors and fingerprints
+
+# name -> callable for every descriptor the installed RDKit provides
+DESCRIPTOR_FUNCTIONS = dict(Descriptors.descList)
+
+
+def _calc_one_descriptor(func: Callable[[Mol], float], mol: Mol):
+    """Evaluate a single descriptor, returning None if it cannot be calculated.
+
+    Mirrors the behaviour of ``Descriptors.CalcMolDescriptors``, which reports a
+    descriptor that raises as a missing value rather than failing the whole molecule.
+
+    :param func: the descriptor function
+    :param mol: RDKit molecule
+    :return: the descriptor value, or None if it could not be calculated
+    """
+    try:
+        return func(mol)
+    except Exception:
+        return None
+
 
 
 class Smi2Fp:
@@ -171,13 +191,20 @@ class RDKitDescriptors:
         :param desc_names: Optional list of descriptor names to use. If not provided, the full RDKit descriptor list is used.
         :param hide_progress: If true, progress bars are disabled when processing lists.
         :param skip_fragments: If true, descriptors whose names contain "fr_" are excluded.
+        :raises ValueError: if desc_names contains a name the installed RDKit does not provide
         :return: None
         """
         self.hide_progress = hide_progress
         if desc_names is not None:
-            self.desc_names = desc_names
+            unknown = [x for x in desc_names if x not in DESCRIPTOR_FUNCTIONS]
+            if unknown:
+                raise ValueError(
+                    f"Unknown descriptor(s): {unknown}. "
+                    f"Names must come from Descriptors.descList, e.g. {sorted(DESCRIPTOR_FUNCTIONS)[:5]}"
+                )
+            self.desc_names: List[str] = list(desc_names)
         else:
-            self.desc_names: List[str] = sorted([x[0] for x in Descriptors.descList])
+            self.desc_names: List[str] = sorted(DESCRIPTOR_FUNCTIONS)
         if skip_fragments:
             self.desc_names = [x for x in self.desc_names if "fr_" not in x]
 
@@ -192,16 +219,20 @@ class RDKitDescriptors:
     def calc_mol(self, mol: Mol) -> np.ndarray:
         """Calculate descriptors for an RDKit molecule.
 
+        Only the requested descriptors are evaluated. Calculating the full set and
+        then selecting from it makes a request for a handful of descriptors as
+        expensive as a request for all ~200 of them.
+
         :param mol: RDKit molecule
         :return: A numpy array with descriptor values
         """
-        if mol is not None:
-            RDLogger.DisableLog('rdApp.warning')
-            res_dict = Descriptors.CalcMolDescriptors(mol)
+        if mol is None:
+            return np.array([None] * len(self.desc_names))
+        RDLogger.DisableLog('rdApp.warning')
+        try:
+            res = np.array([_calc_one_descriptor(DESCRIPTOR_FUNCTIONS[x], mol) for x in self.desc_names])
+        finally:
             RDLogger.EnableLog('rdApp.warning')
-            res = np.array([res_dict[x] for x in self.desc_names])
-        else:
-            res = np.array([None] * len(self.desc_names))
         return res
 
     def calc_smiles(self, smiles: str) -> np.ndarray:
@@ -238,18 +269,26 @@ class RDKitDescriptors:
         return df
 
 
-def clean_descriptors(desc_in: np.ndarray) -> tuple[np.ndarray | List[int]]:
+def clean_descriptors(desc_in: Union[np.ndarray, pd.DataFrame]) -> Tuple[Union[np.ndarray, pd.DataFrame], List[int]]:
     """
     Remove descriptor columns that contain any NaN or infinite values.
 
-    :param desc_in: Input descriptor array
-    :return: Tuple containing the cleaned descriptor array (only columns with all finite values) and a list of kept column indices
+    A DataFrame is returned as a DataFrame with its column labels preserved; an
+    array is returned as an array.
+
+    :param desc_in: Input descriptor array or DataFrame
+    :return: Tuple containing the cleaned descriptors (only columns with all finite values) and a list of kept column indices
     """
-    valid_mask = ~np.any(np.isnan(desc_in) | np.isinf(desc_in), axis=0)
+    desc_arr = np.asarray(desc_in, dtype=float)
+    valid_mask = ~np.any(np.isnan(desc_arr) | np.isinf(desc_arr), axis=0)
     if not np.any(valid_mask):
         raise ValueError("All descriptor columns contain NaN or infinite values.")
-    clean_desc = desc_in[:, valid_mask]
     kept_indices = np.where(valid_mask)[0].tolist()
+    if isinstance(desc_in, pd.DataFrame):
+        clean_desc = desc_in.iloc[:, kept_indices]
+    else:
+        # index the original rather than the float view, so the input dtype survives
+        clean_desc = np.asarray(desc_in)[:, valid_mask]
     return clean_desc, kept_indices
 
 
@@ -435,7 +474,7 @@ def plot_properties(prop_df: pd.DataFrame) -> plt.Figure:
     """
     figure, axes = plt.subplots(1, len(prop_df.columns), figsize=(15, 5), squeeze=False)
     for idx, col in enumerate(prop_df.columns):
-        ax = sns.histplot(prop_df[col], ax=axes[idx])
+        ax = sns.histplot(prop_df[col], ax=axes[0, idx])
         ax.set_title(col)
 
     plt.tight_layout()
@@ -470,6 +509,7 @@ def compare_datasets(
 
 
 __all__ = [
+    "DESCRIPTOR_FUNCTIONS",
     "Smi2Fp",
     "mol2morgan_fp",
     "smi2morgan_fp",

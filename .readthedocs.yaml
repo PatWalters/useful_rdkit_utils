@@ -7,13 +7,11 @@ version: 2
 
 # Set the version of Python and other tools you might need
 build:
-  os: ubuntu-20.04
+  os: ubuntu-24.04
   tools:
-    python: "3.11"
-    # You can also specify other tool versions:
-    # nodejs: "16"
-    # rust: "1.55"
-    # golang: "1.17"
+    # 3.12 is the newest version the CI matrix covers, and it is new enough for the
+    # current releases of numpy and scipy, which both require >= 3.12
+    python: "3.12"
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
@@ -23,7 +21,13 @@ sphinx:
 # formats:
 #    - pdf
 
-# Optionally declare the Python requirements required to build your docs
+# Install the package itself, so the runtime dependencies come from pyproject.toml
+# and cannot drift. "docs" brings the Sphinx toolchain; "extras" brings click, which
+# sphinx-click needs to document the build_ring_dictionary command.
 python:
    install:
-   - requirements: requirements.txt
+   - method: pip
+     path: .
+     extra_requirements:
+       - docs
+       - extras

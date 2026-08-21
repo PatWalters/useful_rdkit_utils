@@ -34,8 +34,14 @@ def generate_fragments(mol: Mol) -> pd.DataFrame:
     """
     Generate fragments using the RDKit
     :param mol: RDKit molecule
+    :raises ValueError: if mol is None or contains no atoms
     :return: a Pandas dataframe with Scaffold SMILES, Number of Atoms, Number of R-Groups
     """
+    if mol is None:
+        raise ValueError("Cannot generate fragments for None")
+    num_mol_atoms = mol.GetNumAtoms()
+    if num_mol_atoms == 0:
+        raise ValueError("Cannot generate fragments for a molecule with no atoms")
     # Generate molecule fragments
     frag_list = FragmentMol(mol)
     # Flatten the output into a single list
@@ -44,7 +50,6 @@ def generate_fragments(mol: Mol) -> pd.DataFrame:
     flat_frag_list = [get_largest_fragment(x) for x in flat_frag_list]
     # Keep fragments where the number of atoms in the fragment is at least 2/3 of the number of atoms
     # in the input molecule
-    num_mol_atoms = mol.GetNumAtoms()
     flat_frag_list = [x for x in flat_frag_list if x.GetNumAtoms() / num_mol_atoms > 0.67]
     # remove atom map numbers from the fragments
     flat_frag_list = [cleanup_fragment(x) for x in flat_frag_list]
@@ -62,9 +67,19 @@ def generate_fragments(mol: Mol) -> pd.DataFrame:
 def find_scaffolds(df_in: pd.DataFrame, smiles_col="SMILES", name_col="Name",disable_progress=False) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Generate scaffolds for a set of molecules
-    :param df_in: Pandas dataframe with [SMILES, Name, RDKit molecule] columns
+    :param df_in: Pandas dataframe with SMILES, Name and "mol" (RDKit molecule) columns
+    :param smiles_col: name of the SMILES column
+    :param name_col: name of the name column
+    :param disable_progress: hide the progress bar
+    :raises KeyError: if any of the required columns is missing
     :return: dataframe with molecules and scaffolds, dataframe with unique scaffolds
     """
+    missing = [c for c in (smiles_col, name_col, "mol") if c not in df_in.columns]
+    if missing:
+        raise KeyError(
+            f"find_scaffolds requires the column(s) {missing}. The 'mol' column holds RDKit "
+            f"molecules, e.g. df['mol'] = df['{smiles_col}'].apply(Chem.MolFromSmiles)"
+        )
     # Loop over molecules and generate fragments, fragments for each molecule are returned as a Pandas dataframe
     df_list = []
     for smiles, name, mol in tqdm(df_in[[smiles_col, name_col, "mol"]].values, disable=disable_progress):
@@ -109,11 +124,13 @@ def get_molecules_with_scaffold(
     :return: A tuple with a list of unique core SMILES and a DataFrame of matching molecules with activity data.
     """
     match_df = mol_df.query("Scaffold == @scaffold").copy()
-    # Generate RDKit molecules if not already present in activity_df
-    if "mol" not in activity_df.columns:
-        match_df['mol'] = match_df.SMILES.apply(Chem.MolFromSmiles)
-    merge_df = match_df.merge(activity_df, left_on=["SMILES","Name"],
-                              right_on=[smiles_col, name_col], how="left")
+    # Build the molecules from the fragment table's own SMILES. Taking them from a
+    # "mol" column in activity_df instead leaves NaN for any scaffold match that has
+    # no activity row, and RGroupDecompose then fails with an opaque Boost error.
+    match_df['mol'] = match_df.SMILES.apply(Chem.MolFromSmiles)
+    merge_df = match_df.merge(activity_df, left_on=["SMILES", "Name"],
+                              right_on=[smiles_col, name_col], how="left",
+                              suffixes=("", "_activity"))
     scaffold_mol = Chem.MolFromSmiles(scaffold)
     Chem.RemoveStereochemistry(scaffold_mol)
     rgroup_match, rgroup_miss = RGroupDecompose(
@@ -158,7 +175,6 @@ __all__ = [
     "generate_fragments",
     "find_scaffolds",
     "get_molecules_with_scaffold",
-    "main",
 ]
 
 

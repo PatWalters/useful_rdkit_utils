@@ -2,7 +2,14 @@
 # This is a simple script to build a ring dictionary from the ChEMBL chemreps file
 import sys
 import useful_rdkit_utils as uru
-import click
+
+try:
+    import click
+except ImportError as exc:  # pragma: no cover - depends how the package was installed
+    raise ImportError(
+        "The build_ring_dictionary command requires click. "
+        "Install it with: pip install useful_rdkit_utils[extras]"
+    ) from exc
 
 
 @click.command()

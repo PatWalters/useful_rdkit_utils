@@ -30,7 +30,8 @@ class REOS:
         url = 'https://raw.githubusercontent.com/PatWalters/rd_filters/master/rd_filters/data/alert_collection.csv'
         self.rule_path = pystow.ensure('useful_rdkit_utils', 'data', url=url)
         self.active_rule_df = None
-        self.rule_df = pd.read_csv(self.rule_path)
+        self.active_rules = None
+        self.rule_df = None
         self.read_rules(self.rule_path, active_rules)
         self.rules_dict = self.get_rules_dict()
 
@@ -61,22 +62,43 @@ class REOS:
     def read_rules(self, rules_file, active_rules=None):
         """Read a rules file
 
-        :param rules_file: name of the rules file
+        :param rules_file: name of the rules file to read
         :param active_rules: list of active rule sets, all rule sets are used if
             this is None
+        :raises ValueError: if the file contains SMARTS that cannot be parsed, or if
+            active_rules names a rule set that is not in the file
         :return: None
         """
+        self.rule_path = rules_file
+        self.rule_df = pd.read_csv(rules_file)
         if not self.parse_smarts():
-            print("Error reading rules, please fix the SMARTS errors reported above", file=sys.stderr)
-            sys.exit(1)
+            raise ValueError(
+                f"Could not parse every SMARTS in {rules_file}; see the errors reported above"
+            )
         if active_rules is not None:
-            self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
-            if len(self.active_rule_df) == 0:
-                available_rules = sorted(list(self.rule_df["rule_set_name"].unique()))
-                raise ValueError(f"Supplied rules: {active_rules} not available. Please select from {available_rules}")
+            self._select_rule_sets(active_rules)
         else:
             # no specific rule set requested: use all rules
             self.active_rule_df = self.rule_df.copy()
+            self.active_rules = sorted(self.rule_df["rule_set_name"].unique())
+
+    def _select_rule_sets(self, active_rules) -> None:
+        """Point active_rule_df at the named rule sets, validating the names.
+
+        :param active_rules: rule set name, or list of rule set names
+        :raises ValueError: if none of the names match a rule set in the rules file
+        :return: None
+        """
+        # a bare rule set name is a natural thing to pass, and list("PAINS") would
+        # otherwise store the individual characters as the active rule sets
+        if isinstance(active_rules, str):
+            active_rules = [active_rules]
+        active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
+        if len(active_rule_df) == 0:
+            available_rules = sorted(list(self.rule_df["rule_set_name"].unique()))
+            raise ValueError(f"Supplied rules: {active_rules} not available. Please select from {available_rules}")
+        self.active_rule_df = active_rule_df
+        self.active_rules = list(active_rules)
 
     def get_rules_dict(self) -> dict:
         """Create a dictionary from the rules in rule_df.
@@ -92,11 +114,11 @@ class REOS:
     def set_active_rule_sets(self, active_rules=None):
         """Set the active rule set(s)
 
-        :param active_rules: list of active rule sets
+        :param active_rules: rule set name, or list of rule set names
         :return: None
         """
         assert active_rules
-        self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules")
+        self._select_rule_sets(active_rules)
 
     def set_min_priority(self, min_priority: int) -> None:
         """Set the minimum priority for rules to be included in the active rule set.
@@ -104,10 +126,10 @@ class REOS:
         :param min_priority: The minimum priority for rules to be included.
         :return: None
         """
-        # reset active_rule_df
-        self.active_rule_df = self.rule_df.query("rule_set_name in @active_rules").copy()
+        # reset active_rule_df to the rule sets that were selected most recently
+        self._select_rule_sets(self.active_rules)
         # filter to only include rules with priority greater than or equal to min_priority
-        self.active_rule_df = self.active_rule_df.query("priority >= @min_priority")
+        self.active_rule_df = self.active_rule_df.query("priority >= @min_priority").copy()
 
     def get_available_rule_sets(self):
         """Get the available rule sets in rule_df
@@ -145,8 +167,11 @@ class REOS:
         """Match a molecule against the active rule set
 
         :param mol: input RDKit molecule
-        :return: the first rule matched or "ok" if no rules are matched
+        :return: the first rule matched, "ok" if no rules are matched, or None if
+            mol is None (e.g. a SMILES that failed to parse)
         """
+        if mol is None:
+            return None
         cols = ['description', 'rule_set_name', 'smarts', 'pat', 'max']
         if self.output_smarts:
             ret_val = ("ok", "ok", "ok")

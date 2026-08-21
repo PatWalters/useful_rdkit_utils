@@ -255,14 +255,14 @@ def test_ring_system_lookup(input_filename, output_filename):
 def get_min_ring_frequency(ring_list):
     """Get minimum frequency from RingSystemLookup.process_smiles
 
+    The input list is not modified.
+
     :param ring_list: output from RingSystemLookup.process_smiles
     :return: [ring_with minimum frequency, minimum frequency], acyclic molecules return ["",-1]
     """
-    ring_list.sort(key=itemgetter(1))
-    if len(ring_list):
-        return ring_list[0]
-    else:
+    if not len(ring_list):
         return ["", -1]
+    return list(min(ring_list, key=itemgetter(1)))
 
 
 def remove_stereo_from_smiles(smi_in):

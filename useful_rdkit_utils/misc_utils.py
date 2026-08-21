@@ -26,6 +26,14 @@ def smi2mol_with_errors(smi: str) -> Tuple[Mol, str]:
     captured by assigning to ``sys.stderr``, so the descriptor itself is
     temporarily redirected to a pipe while parsing.
 
+    .. warning::
+       File descriptor 2 is process-wide, so this function is **not thread-safe**:
+       concurrent calls, or anything else writing to stderr while a call is in
+       flight, will cross-contaminate. The pipe is also only drained after parsing
+       returns, so output larger than the OS pipe buffer (typically 64 KB) would
+       block. A single SMILES is far below that, but parsing is best kept to one
+       thread.
+
     :param smi: input SMILES
     :return: tuple of RDKit molecule, warning or error
     """
@@ -64,12 +72,17 @@ def get_largest_fragment(mol: Mol) -> Mol:
     """Return the fragment with the largest number of atoms
 
     :param mol: RDKit molecule
+    :raises ValueError: if mol is None or contains no atoms, and so has no fragments
     :return: RDKit molecule with the largest number of atoms
     """
+    if mol is None:
+        raise ValueError("Cannot get the largest fragment of None")
     frag_list = list(Chem.GetMolFrags(mol, asMols=True))
-    frag_mw_list = [(x.GetNumAtoms(), x) for x in frag_list]
-    frag_mw_list.sort(key=itemgetter(0), reverse=True)
-    return frag_mw_list[0][1]
+    if not frag_list:
+        raise ValueError("Molecule has no fragments; it contains no atoms")
+    frag_size_list = [(x.GetNumAtoms(), x) for x in frag_list]
+    frag_size_list.sort(key=itemgetter(0), reverse=True)
+    return frag_size_list[0][1]
 
 
 # ----------- Clustering
@@ -146,7 +159,7 @@ def demo_block_logs() -> None:
 
 
 # ----------- Image generation
-def boxplot_base64_image(dist: np.ndarray, x_lim: list[int] = [0, 10]) -> str:
+def boxplot_base64_image(dist: np.ndarray, x_lim: Tuple[int, int] = (0, 10)) -> str:
     """
     Plot a distribution as a seaborn boxplot and save the resulting image as a base64 image.
 
