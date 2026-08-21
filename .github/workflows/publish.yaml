@@ -1,0 +1,171 @@
+name: Publish
+
+# Publishes the package to PyPI using trusted publishing (OpenID Connect), so no
+# API token is stored anywhere. See .github/PUBLISHING.md for the one-time setup.
+#
+# Three ways to run it:
+#   * push a version tag (v1.01) -- the usual release path
+#   * run it by hand from the Actions tab, optionally targeting TestPyPI first
+#   * call it from another workflow (workflow_call), e.g. after a release job
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Where to publish"
+        required: true
+        default: testpypi
+        type: choice
+        options:
+          - testpypi
+          - pypi
+  workflow_call:
+    inputs:
+      target:
+        description: "Where to publish: pypi or testpypi"
+        required: false
+        default: pypi
+        type: string
+      ref:
+        description: "Git ref to build; defaults to the calling workflow's ref"
+        required: false
+        default: ""
+        type: string
+
+# The default token needs no write access: publishing is authorised by the OIDC
+# id-token, which is requested per job below.
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and check distributions
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine packaging
+
+      - name: Build sdist and wheel
+        run: |
+          rm -rf dist
+          python -m build
+
+      - name: Read the version that was built
+        id: version
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import pathlib
+          from packaging.utils import parse_wheel_filename
+          wheel = next(pathlib.Path("dist").glob("*.whl"))
+          _, version, _, _ = parse_wheel_filename(wheel.name)
+          print(f"version={version}")
+          PY
+
+      # Guards against tagging one version and shipping another. The comparison is
+      # on parsed versions, not strings: __version__ = "1.00" builds as "1.0", so
+      # tag v1.00 and dist 1.0 are the same release and must not be rejected.
+      - name: Check the tag matches the package version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+          BUILT: ${{ steps.version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os, sys
+          from packaging.version import Version, InvalidVersion
+          tag, built = os.environ["TAG"], os.environ["BUILT"]
+          try:
+              tag_version = Version(tag.lstrip("v"))
+          except InvalidVersion:
+              sys.exit(f"Tag {tag!r} is not a PEP 440 version")
+          if tag_version != Version(built):
+              sys.exit(
+                  f"Tag {tag!r} (version {tag_version}) does not match the built "
+                  f"distribution version {built}. Update __version__ in "
+                  f"useful_rdkit_utils/__init__.py, or retag."
+              )
+          print(f"Tag {tag} matches built version {built}")
+          PY
+
+      - name: Check distribution metadata
+        run: twine check --strict dist/*
+
+      # A wheel that cannot be imported is worse than no release, and PyPI uploads
+      # cannot be replaced, so install it clean and import it before publishing.
+      - name: Smoke test the built wheel
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/python -m pip install --quiet --upgrade pip
+          /tmp/smoke/bin/python -m pip install --quiet "$(ls dist/*.whl)[all]"
+          /tmp/smoke/bin/python -c "
+          import useful_rdkit_utils as uru
+          from rdkit import Chem
+          assert uru.smi2morgan_fp('CCO') is not None
+          assert uru.RDKitDescriptors(desc_names=['MolWt']).calc_smiles('CCO')[0] > 0
+          print('imported useful_rdkit_utils', uru.__version__)
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: inputs.target == 'testpypi'
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/useful-rdkit-utils
+    permissions:
+      id-token: write        # required for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          # TestPyPI often already holds a build of this version from an earlier
+          # rehearsal; that should not fail the run.
+          skip-existing: true
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    # Tag pushes always go to PyPI; manual and called runs only when asked. The
+    # event check matters: without it, dispatching from a tag ref to publish to
+    # TestPyPI would also publish to PyPI, which cannot be undone.
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || inputs.target == 'pypi'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/useful-rdkit-utils
+    permissions:
+      id-token: write        # required for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
