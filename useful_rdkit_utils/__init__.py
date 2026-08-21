@@ -21,4 +21,4 @@ from .model_comparison import *
 from .descriptor_preprocessor import *
 from .silly_walks import *
 
-__version__ = "1.00"
+__version__ = "2.0"

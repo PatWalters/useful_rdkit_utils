@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [2.0] - 2026-08-21
 ### Added
 - Python 3.13 to the CI matrix, and 3.11/3.12/3.13 to the package classifiers. requires-python stays at >=3.11:
   the code needs nothing newer than 3.9 syntactically, and 3.11 is still supported upstream, so raising the floor
