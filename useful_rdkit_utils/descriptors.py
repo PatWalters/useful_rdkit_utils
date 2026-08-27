@@ -101,10 +101,12 @@ class Smi2Fp:
 def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.ExplicitBitVect:
     """
     Convert an RDKit molecule to a Morgan fingerprint
-    To avoid the rdkit deprecated warning, do this
-    from rdkit import rdBase
-    with rdBase.BlockLogs():
-        uru.smi2numpy_fp("CCC")
+
+    To avoid the rdkit deprecated warning, do this::
+
+        from rdkit import rdBase
+        with rdBase.BlockLogs():
+            uru.smi2numpy_fp("CCC")
 
     :param mol: RDKit molecule
     :param radius: fingerprint radius
@@ -118,10 +120,12 @@ def mol2morgan_fp(mol: Mol, radius: int = 2, nBits: int = 2048) -> DataStructs.E
 
 def smi2morgan_fp(smi: str, radius: int = 2, nBits: int = 2048) -> Optional[DataStructs.ExplicitBitVect]:
     """Convert a SMILES to a Morgan fingerprint
-    To avoid the rdkit deprecated warning, do this
-    from rdkit import rdBase
-    with rdBase.BlockLogs():
-        uru.smi2numpy_fp("CCC")
+
+    To avoid the rdkit deprecated warning, do this::
+
+        from rdkit import rdBase
+        with rdBase.BlockLogs():
+            uru.smi2numpy_fp("CCC")
 
     :param smi: SMILES
     :param radius: fingerprint radius
@@ -190,7 +194,7 @@ class RDKitDescriptors:
 
         :param desc_names: Optional list of descriptor names to use. If not provided, the full RDKit descriptor list is used.
         :param hide_progress: If true, progress bars are disabled when processing lists.
-        :param skip_fragments: If true, descriptors whose names contain "fr_" are excluded.
+        :param skip_fragments: If true, descriptors whose names contain ``fr_`` are excluded.
         :raises ValueError: if desc_names contains a name the installed RDKit does not provide
         :return: None
         """
@@ -382,20 +386,6 @@ class Ro5Calculator:
         A list of names of the properties to be calculated.
     functions : List[Callable[[Mol], float]]
         A list of functions used to calculate the properties.
-
-    Methods
-    -------
-    calc_mol(mol: Mol) -> np.ndarray
-        Calculates properties for a RDKit molecule.
-
-    calc_smiles(smi: str) -> Optional[np.ndarray]
-        Calculates properties for a SMILES string.
-
-    pandas_smiles(smiles_list: List[str]) -> pd.DataFrame
-        Calculates properties for a list of SMILES strings and returns them as a pandas DataFrame.
-
-    pandas_mols(mol_list: List[Mol]) -> pd.DataFrame
-        Calculates properties for a list of RDKit molecules and returns them as a pandas DataFrame.
     """
 
     def __init__(self: "Ro5Calculator") -> None:

@@ -22,12 +22,11 @@ sphinx:
 #    - pdf
 
 # Install the package itself, so the runtime dependencies come from pyproject.toml
-# and cannot drift. "docs" brings the Sphinx toolchain; "extras" brings click, which
-# sphinx-click needs to document the build_ring_dictionary command.
+# and cannot drift. "docs" brings the Sphinx toolchain. The optional extras are not
+# needed: nothing autodoc imports pulls in click or IPython at module level.
 python:
    install:
    - method: pip
      path: .
      extra_requirements:
        - docs
-       - extras

@@ -215,7 +215,7 @@ class DescriptorPreprocessor(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        X_out : ndarray of shape (n_samples, n_features_out_)
+        X_out : ndarray of shape ``(n_samples, n_features_out_)``
             Cleaned, imputed, and (optionally) standardized matrix.
 
         Raises

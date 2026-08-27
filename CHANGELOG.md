@@ -2,6 +2,33 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Documentation pages for the three modules that had none: silly_walks, optional, and a Command Line
+  Tools page covering the `build_ring_dictionary` and `silly_walks` console scripts added in 2.0.
+- sphinx.ext.napoleon. The package mixes two docstring styles, and the NumPy-style Parameters/Attributes
+  sections in descriptor_preprocessor and model_comparison were rendering as a run of unformatted text
+  because nothing was parsing them.
+- installation.rst and README.md document all of the optional extras (`extras`, `jupyter`, `all`, `docs`,
+  `tests`), what each one brings in, and how to run the test suite.
+### Changed
+- conf.py reads the version out of useful_rdkit_utils/__init__.py, the same place hatchling reads it, so
+  the docs cannot drift from the package. It was hard-coded to 1.0.0, so the 2.0 docs were titled 1.0.0.
+- index.rst splits the toctree into "Getting Started" and "API Reference".
+- Dropped sphinx-click. Version 6.2.0 does `from sphinx.ext.autodoc import mock`, which resolves to the
+  submodule rather than the function on Sphinx 9, so the `.. click::` directive raises
+  "TypeError: 'module' object is not callable". The two CLIs are documented by hand instead, which also
+  keeps them consistent, since silly_walks uses argparse and sphinx-click only handles click.
+- .readthedocs.yaml no longer installs the `extras` extra for the docs build. Nothing autodoc imports
+  pulls in click or IPython at module level.
+### Fixed
+- The docs build is clean: 14 Sphinx warnings and docutils errors down to 0.
+- Docstring markup that docutils could not parse: the code snippets in mol2morgan_fp() and smi2morgan_fp()
+  are literal blocks rather than unexpected indentation, the `:param`/`:return` continuation lines in
+  enumerate_library() and enumerate_library_sample() are indented so the field lists do not terminate
+  early, and the trailing-underscore identifiers ("fr_", `n_features_out_`) are escaped rather than read
+  as references to undefined targets.
+- Removed the Methods section from Ro5Calculator's docstring. It duplicated what autodoc already generates
+  from the methods themselves, producing four "duplicate object description" warnings.
 
 ## [2.0] - 2026-08-21
 ### Added

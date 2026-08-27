@@ -1,5 +1,6 @@
 useful_rdkit_utils |release| Documentation
 ==========================================
+A motley collection of useful RDKit functions.
 
 .. toctree::
    :maxdepth: 2
@@ -7,10 +8,19 @@ useful_rdkit_utils |release| Documentation
    :name: start
 
    installation
+   cli
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
+   :name: api
+
    reos
    ring_systems
    descriptors
+   descriptor_preprocessor
    scaffold_finder
+   silly_walks
    split_utils
    reactions
    geometry
@@ -22,7 +32,7 @@ useful_rdkit_utils |release| Documentation
    units
    sali
    model_comparison
-   descriptor_preprocessor
+   optional
 
 Indices and Tables
 ------------------

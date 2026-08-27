@@ -32,10 +32,10 @@ def enumerate_library(rxn_mol: ChemicalReaction, reagent_lol: List[List[Mol]]) -
 
     :param rxn_mol: A chemical reaction represented as an RDKit ChemicalReaction object.
     :param reagent_lol: A list of lists, where each inner list represents a set of reagents. Each reagent is an
-    RDKit Mol object. The molecule object must have a "_Name" property that contains a string identifier.
+        RDKit Mol object. The molecule object must have a "_Name" property that contains a string identifier.
     :return: A list of lists, where each inner list represents a product. Each product is represented as a list
-    containing a SMILES string of the product and a string identifier formed by joining the identifiers of
-    the reagents used to form the product.
+        containing a SMILES string of the product and a string identifier formed by joining the identifiers of
+        the reagents used to form the product.
     """
     prod_list = []
     num_failed = 0
@@ -62,10 +62,10 @@ def enumerate_library_sample(rxn: ChemicalReaction, reagent_lol: List[List[Mol]]
 
     :param rxn: A chemical reaction represented as an RDKit ChemicalReaction object.
     :param reagent_lol: A list of lists, where each inner list represents a set of reagents. Each reagent is an
-    RDKit Mol object. The molecule object must have a "_Name" property that contains a string identifier.
+        RDKit Mol object. The molecule object must have a "_Name" property that contains a string identifier.
     :param num_to_generate: The number of products to generate.
     :return: A pandas DataFrame with the generated products. Each row contains a SMILES string of the product and a
-    string identifier.
+        string identifier.
     """
     used = set()
     prod_list = []

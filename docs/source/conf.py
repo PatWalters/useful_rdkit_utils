@@ -26,21 +26,15 @@ project = 'useful_rdkit_utils'
 copyright = f'{date.today().year}, Pat Walters'
 author = 'Pat Walters'
 
-# The full version, including alpha/beta/rc tags.
-release = '1.0.0'
-
+# The full version, including alpha/beta/rc tags. Read straight out of
+# useful_rdkit_utils/__init__.py, which is also where hatchling reads it, so the
+# version in the docs cannot drift away from the version of the package.
+_init_py = os.path.join(os.path.dirname(__file__), '..', '..', 'useful_rdkit_utils', '__init__.py')
+with open(_init_py) as _fh:
+    release = re.search(r'^__version__ = ["\'](?P<version>[^"\']+)["\']', _fh.read(), re.M).group('version')
 
 # The short X.Y version.
-parsed_version = re.match(
-    '(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?',
-    release,
-)
-
-
-version = parsed_version.expand('\g<major>.\g<minor>.\g<patch>')
-
-#if parsed_version.group('release'):
-#    tags.add('prerelease')
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -61,13 +55,17 @@ modindex_common_prefix = ["useful_rdkit_utils."]
 extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
+    # The package mixes two docstring styles: ":param x:" in most modules and
+    # NumPy-style "Parameters/Attributes" sections in descriptor_preprocessor
+    # and model_comparison. Napoleon is what turns the latter into real sections
+    # rather than a run of unformatted text.
+    'sphinx.ext.napoleon',
     'sphinx.ext.coverage',
     'sphinx.ext.intersphinx',
     "sphinx.ext.todo",
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx_autodoc_typehints',
-    'sphinx_click.ext',
     'sphinx_automodapi.automodapi',
     'sphinx_automodapi.smart_resolver',
     # 'texext',
