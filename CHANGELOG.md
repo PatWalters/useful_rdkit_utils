@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [2.0.1] - 2026-08-27
 ### Added
 - Documentation pages for the three modules that had none: silly_walks, optional, and a Command Line
   Tools page covering the `build_ring_dictionary` and `silly_walks` console scripts added in 2.0.
