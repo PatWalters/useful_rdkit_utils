@@ -296,16 +296,17 @@ def get_spiro_atoms(mol):
     """Get atoms that are part of a spiro fusion
 
     :param mol: input RDKit molecule
-    :return: a list of atom numbers for atoms that are the centers of spiro fusions
+    :return: a sorted list of atom numbers for atoms that are the centers of spiro fusions
     """
     info = mol.GetRingInfo()
     ring_sets = [set(x) for x in info.AtomRings()]
-    spiro_atoms = []
+    spiro_atoms = set()
     for i, j in itertools.combinations(ring_sets, 2):
         i_and_j = (i.intersection(j))
         if len(i_and_j) == 1:
-            spiro_atoms += list(i_and_j)
-    return spiro_atoms
+            spiro_atoms.update(i_and_j)
+    # AtomRings() order varies across RDKit versions, so sort for a stable result
+    return sorted(spiro_atoms)
 
 
 def max_ring_size(mol):

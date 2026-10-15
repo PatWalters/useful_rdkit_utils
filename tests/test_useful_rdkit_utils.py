@@ -154,7 +154,7 @@ def test_gen_3d():
 def test_get_spiro_atoms():
     mol = Chem.MolFromSmiles("C1CC2(C1)CCC1(CCCC1)CC2")
     spiro_atoms = uru.get_spiro_atoms(mol)
-    assert str(spiro_atoms) == "[2, 6]"
+    assert spiro_atoms == [2, 6]
 
 
 def test_max_ring_size():
