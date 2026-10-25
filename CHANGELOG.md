@@ -2,6 +2,29 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+- `mcs_rmsd()` is symmetry corrected, which it was documented and named for but did not do.
+  It minimizes the RMSD over every way the MCS maps onto each molecule, but called
+  `GetSubstructMatches()` without `uniquify=False`. That default keeps one representative per
+  symmetry class, which is exactly the set the minimum was meant to be taken over, so there was
+  nothing left to minimize and the comparison was symmetry blind. On pose pairs that differ only
+  by a symmetric relabeling, such as a carboxylate's two oxygens swapped, a para-ring flipped or
+  two methyls exchanged, it reported 1.40 to 1.70 A where the answer is 0. That straddles the 1.5 A
+  threshold conventionally used to call a predicted pose correct, so the error changed verdicts.
+  `refine_conformers(use_symmetry=True)` already treats such pairs as identical, so the two
+  functions disagreed about what counts as the same arrangement.
+### Added
+- `mcs_rmsd(align=...)`. The default compares the conformers in the frame they arrive in, which
+  is what scoring docked or co-folded poses against a crystal structure needs, since the receptor
+  fixes a common frame and a pose in the wrong place must score as wrong. `align=True` superposes
+  the MCS atoms first, which is what comparing free conformers needs. The docstring had not said
+  which of the two it did, and the two answers differ by however far apart the inputs sit.
+- `mcs_rmsd(timeout=...)`, passed through to `FindMCS()`. The MCS search was unbounded, and it is
+  the expensive half of the call on large or highly symmetric pairs.
+- `mcs_rmsd(max_matches=...)`, replacing the inherited `GetSubstructMatches()` default of 1000.
+  Enumerating all mappings rather than one per symmetry class raises the count a long way, and a
+  tetraphenyl scaffold returns 1000 of its 4608 mappings at the old default, silently, so the
+  minimum was taken over an arbitrary subset. The cap is now explicit, documented and raisable.
 
 ## [2.0.1] - 2026-08-27
 ### Added
