@@ -269,3 +269,183 @@ def test_use_symmetry_preserves_the_filtering_invariants():
         assert lookup(i, j) >= rms_threshold
     for d in dropped:
         assert any(lookup(d, k) < rms_threshold for k in kept)
+
+
+def _symmetry_swapped_pair(smiles, seed=0xC0FFEE):
+    """Two poses of one molecule that differ only by a symmetric relabeling.
+
+    The second pose is the first with the coordinates permuted by a non-identity
+    automorphism of the molecular graph, so the two are the same physical
+    arrangement of atoms and a symmetry-corrected RMSD between them must be zero.
+    A symmetry-blind RMSD compares atom i to atom i and reports them as far apart.
+    """
+    mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    assert AllChem.EmbedMolecule(mol, randomSeed=seed) == 0
+    AllChem.MMFFOptimizeMolecule(mol)
+    first = Chem.RemoveHs(mol)
+    second = Chem.Mol(first)
+    self_pattern = Chem.MolFromSmarts(Chem.MolToSmarts(first))
+    identity = tuple(range(first.GetNumAtoms()))
+    automorphisms = first.GetSubstructMatches(self_pattern, uniquify=False)
+    permutation = next(p for p in automorphisms if p != identity)
+    positions = first.GetConformer().GetPositions()
+    conformer = second.GetConformer()
+    for target, source in enumerate(permutation):
+        conformer.SetAtomPosition(target, positions[source].tolist())
+    return first, second
+
+
+# para-disubstituted rings, a carboxylate and a trityl group: the automorphism
+# groups a symmetry-corrected RMSD has to factor out.
+SYMMETRIC_SMILES = [
+    "c1ccc(cc1)C(=O)[O-]",
+    "OC(=O)c1ccc(C(=O)O)cc1",
+    "Cc1ccc(C)cc1",
+    "C(c1ccccc1)(c1ccccc1)c1ccccc1",
+]
+
+
+@pytest.mark.parametrize("smiles", SYMMETRIC_SMILES)
+def test_mcs_rmsd_is_symmetry_corrected(smiles):
+    """A pose pair that is identical up to symmetry must score zero."""
+    first, second = _symmetry_swapped_pair(smiles)
+    num_mcs_atoms, rmsd = mcs_rmsd(first, second)
+    assert num_mcs_atoms == first.GetNumAtoms()
+    assert rmsd == pytest.approx(0.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("smiles", SYMMETRIC_SMILES)
+def test_mcs_rmsd_matches_rdkit_on_symmetric_pairs(smiles):
+    """RDKit's own symmetry-corrected RMSD agrees, which pins the convention."""
+    first, second = _symmetry_swapped_pair(smiles)
+    _, rmsd = mcs_rmsd(first, second)
+    assert rmsd == pytest.approx(rdMolAlign.CalcRMS(Chem.Mol(second), Chem.Mol(first)), abs=1e-6)
+
+
+def test_mcs_rmsd_uniquified_mappings_would_miss_the_symmetry():
+    """Guards the actual defect: uniquify keeps one mapping per symmetry class.
+
+    With the mappings uniquified there is nothing left to minimize over, and the
+    symmetry-equivalent pose above scores well over an angstrom. This test fails
+    if the implementation ever reverts to the uniquified mappings.
+    """
+    first, second = _symmetry_swapped_pair("Cc1ccc(C)cc1")
+    pattern = Chem.MolFromSmarts(Chem.MolToSmarts(first))
+    uniquified = first.GetSubstructMatches(pattern)
+    everything = first.GetSubstructMatches(pattern, uniquify=False)
+    assert len(uniquified) == 1
+    assert len(everything) > 1
+
+    positions_1 = first.GetConformer().GetPositions()
+    positions_2 = second.GetConformer().GetPositions()
+    uniquified_rmsd = min(
+        float(np.sqrt(np.mean(np.sum((positions_1[list(m1)] - positions_2[list(m2)]) ** 2, axis=1))))
+        for m1 in uniquified
+        for m2 in first.GetSubstructMatches(pattern)
+    )
+    assert uniquified_rmsd > 1.0
+    assert mcs_rmsd(first, second)[1] == pytest.approx(0.0, abs=1e-6)
+
+
+def _two_conformer_pair(smiles, seed=7):
+    mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    assert len(AllChem.EmbedMultipleConfs(mol, numConfs=2, randomSeed=seed)) == 2
+    AllChem.MMFFOptimizeMoleculeConfs(mol)
+    mol = Chem.RemoveHs(mol)
+    first = Chem.Mol(mol)
+    first.RemoveAllConformers()
+    first.AddConformer(mol.GetConformer(0), assignId=True)
+    second = Chem.Mol(mol)
+    second.RemoveAllConformers()
+    second.AddConformer(mol.GetConformer(1), assignId=True)
+    return first, second
+
+
+def test_mcs_rmsd_default_keeps_the_frame():
+    """Translating one conformer must change the default, unaligned comparison.
+
+    Poses of a ligand in one receptor share a frame, and a pose in the wrong place
+    has to score as wrong, so the default must not superpose.
+    """
+    first, second = _two_conformer_pair("c1ccccc1C(=O)O")
+    _, before = mcs_rmsd(first, second)
+    shifted = Chem.Mol(second)
+    conformer = shifted.GetConformer()
+    for idx in range(shifted.GetNumAtoms()):
+        position = conformer.GetAtomPosition(idx)
+        conformer.SetAtomPosition(idx, (position.x + 10.0, position.y, position.z))
+    _, after = mcs_rmsd(first, shifted)
+    assert after > before + 5.0
+
+
+def test_mcs_rmsd_align_discards_the_frame():
+    """align=True must be blind to where the probe sits."""
+    first, second = _two_conformer_pair("c1ccccc1C(=O)O")
+    _, before = mcs_rmsd(first, second, align=True)
+    shifted = Chem.Mol(second)
+    conformer = shifted.GetConformer()
+    for idx in range(shifted.GetNumAtoms()):
+        position = conformer.GetAtomPosition(idx)
+        conformer.SetAtomPosition(idx, (position.x + 13.0, position.y - 4.0, position.z + 2.5))
+    _, after = mcs_rmsd(first, shifted, align=True)
+    assert after == pytest.approx(before, abs=1e-6)
+
+
+@pytest.mark.parametrize("smiles", ["CCO", "c1ccccc1C(=O)O", "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+                                    "CC(=O)Nc1ccc(O)cc1", "CN1C=NC2=C1C(=O)N(C)C(=O)N2C"])
+def test_mcs_rmsd_align_matches_get_best_rms(smiles):
+    """On one graph, align=True is GetBestRMS without terminal-group symmetrization.
+
+    That symmetrization is not reachable from Python outside GetBestRMS, so the
+    docstring points at GetBestRMS for the same-molecule case and this pins the
+    relationship between the two.
+    """
+    first, second = _two_conformer_pair(smiles)
+    _, rmsd = mcs_rmsd(first, second, align=True)
+    expected = rdMolAlign.GetBestRMS(Chem.Mol(second), Chem.Mol(first),
+                                     symmetrizeConjugatedTerminalGroups=False)
+    assert rmsd == pytest.approx(expected, abs=1e-4)
+
+
+def test_mcs_rmsd_no_common_substructure_is_infinite(benzene):
+    """Nothing in common means no RMSD to report."""
+    neon = Chem.AddHs(Chem.MolFromSmiles("[Ne]"))
+    AllChem.EmbedMolecule(neon, randomSeed=1)
+    num_mcs_atoms, rmsd = mcs_rmsd(benzene, neon)
+    assert num_mcs_atoms == 0
+    assert rmsd == float("inf")
+
+
+def test_mcs_rmsd_max_matches_bounds_the_enumeration(benzene):
+    """max_matches caps the mappings, replacing a silent 1000-match default.
+
+    Benzene admits twelve mappings onto itself. Capping below that has to leave a
+    usable, non-negative answer rather than raising.
+    """
+    second = Chem.Mol(benzene)
+    _, full = mcs_rmsd(benzene, second)
+    _, capped = mcs_rmsd(benzene, second, max_matches=1)
+    assert full == pytest.approx(0.0, abs=1e-6)
+    assert capped >= full
+
+
+def test_mcs_rmsd_timeout_is_accepted(benzene, ethanol):
+    """A timeout yields a smaller MCS, never an exception."""
+    num_mcs_atoms, rmsd = mcs_rmsd(benzene, ethanol, timeout=5)
+    assert num_mcs_atoms >= 0
+    assert rmsd >= 0
+
+
+def test_kabsch_rmsd_rejects_a_mirror_image():
+    """Superposition must not fold a structure onto its own mirror image."""
+    from useful_rdkit_utils.geometry import _kabsch_rmsd
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("C[C@H](N)C(=O)O"))
+    assert AllChem.EmbedMolecule(mol, randomSeed=5) == 0
+    AllChem.MMFFOptimizeMolecule(mol)
+    mol = Chem.RemoveHs(mol)
+    positions = mol.GetConformer().GetPositions()
+    mirrored = positions.copy()
+    mirrored[:, 0] *= -1.0
+    assert _kabsch_rmsd(positions, positions) == pytest.approx(0.0, abs=1e-9)
+    assert _kabsch_rmsd(positions, mirrored) > 0.1
