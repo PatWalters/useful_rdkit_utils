@@ -21,7 +21,8 @@ classifiers = [
 ]
 dependencies = [
      'numpy',
-     'rdkit',
+     # 2026.9.2 macOS/Windows wheels break MurckoDecompose (rdkit/rdkit#9836)
+     'rdkit!=2026.9.2',
      'pandas',
      'pystow',
      'matplotlib',
