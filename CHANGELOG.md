@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Fixed
+- Excluded rdkit 2026.9.2 from the dependencies. Its macOS arm64 PyPI wheels raise
+  `RuntimeError: bad any cast` from `MurckoDecompose()` on every molecule
+  (rdkit/rdkit#9836), which broke `get_scaffold()` and the scaffold-based splits and clustering
+  on Apple Silicon. The Linux wheels and the conda-forge build are unaffected, but one exclusion
+  keeps the requirement simple. Lift it once a fixed release is out.
 - `mcs_rmsd()` is symmetry corrected, which it was documented and named for but did not do.
   It minimizes the RMSD over every way the MCS maps onto each molecule, but called
   `GetSubstructMatches()` without `uniquify=False`. That default keeps one representative per
