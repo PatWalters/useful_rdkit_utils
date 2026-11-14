@@ -2,7 +2,7 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from rdkit import Chem
+from rdkit import Chem, DataStructs
 from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem.Scaffolds.MurckoScaffold import MurckoScaffoldSmiles
 from rdkit.Chem.rdchem import Mol
@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection._split import _BaseKFold
 from tqdm.auto import tqdm
 from .descriptors import smi2numpy_fp
-from .misc_utils import taylor_butina_clustering
+from .misc_utils import get_largest_fragment, taylor_butina_clustering
 
 
 class GroupKFoldShuffle(_BaseKFold):
@@ -210,6 +210,131 @@ def cross_validate(df: pd.DataFrame,
     return pd.concat(fold_df_list)[output_cols]
 
 
+def _leakage_keys(smiles_list: List[str], strip_salts: bool,
+                 progress: bool) -> Tuple[List[Optional[str]], List[Optional[str]], List[Optional[Mol]]]:
+    """InChIKey, Bemis-Murcko scaffold and parsed molecule for each input SMILES.
+
+    :param smiles_list: SMILES to key
+    :param strip_salts: keep only the largest fragment before keying
+    :param progress: show a progress bar
+    :return: a list of InChIKeys, a list of scaffolds and a list of molecules,
+        each holding None where the SMILES would not parse
+    """
+    keys, scaffolds, mols = [], [], []
+    for smi in tqdm(smiles_list, disable=not progress, desc="keying molecules"):
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            keys.append(None)
+            scaffolds.append(None)
+            mols.append(None)
+            continue
+        if strip_salts:
+            mol = get_largest_fragment(mol)
+        keys.append(Chem.MolToInchiKey(mol))
+        scaffolds.append(get_scaffold(mol))
+        mols.append(mol)
+    return keys, scaffolds, mols
+
+
+def audit_split_leakage(train_smiles: List[str], test_smiles: List[str],
+                        similarity_cutoff: float = 0.9, strip_salts: bool = True,
+                        radius: int = 2, n_bits: int = 2048,
+                        progress: bool = False) -> pd.DataFrame:
+    """
+    Check an existing train/test split for test molecules that are already in the training set.
+
+    This module builds splits; this function audits one it is handed, which is the case when the
+    split arrives with a public benchmark or from a collaborator. Each test molecule is checked
+    against the training set four ways, from strictest to loosest:
+
+    * ``exact``, an identical InChIKey. The same molecule on both sides.
+    * ``same_connectivity``, an identical first InChIKey block. That block encodes constitution
+      only, so it also catches a training molecule that differs just in stereochemistry or
+      protonation state: enantiomers, diastereomers, E/Z isomers and an acid against its
+      conjugate base all collapse onto it. It does not see through every tautomer, and it does
+      not see through salts and mixtures at all, which is what ``strip_salts`` is for.
+    * ``same_scaffold``, an identical Bemis-Murcko scaffold, via :func:`get_scaffold`.
+    * ``nearest_similarity``, the largest Morgan fingerprint Tanimoto to any training molecule,
+      with the training molecule that produced it. ``near_duplicate`` flags the ones at or above
+      ``similarity_cutoff``. The fingerprint carries no chirality, so a pair of enantiomers
+      scores 1.0 here; that pair is already reported by ``same_connectivity``.
+
+    The first two are leakage outright: a model can score well on them without generalizing at
+    all. The last two are degrees of optimism rather than errors, and whether they matter depends
+    on what the split was built to measure, so they are reported rather than judged.
+
+    :param train_smiles: SMILES of the training set
+    :param test_smiles: SMILES of the test set, one row of output per entry
+    :param similarity_cutoff: Tanimoto at or above which a test molecule is flagged a near
+                              duplicate of a training molecule
+    :param strip_salts: Reduce every molecule to its largest fragment before comparing, so a
+                        salt of a training compound is recognized rather than missed. Counter
+                        ions and solvates otherwise change the InChIKey outright.
+    :param radius: Morgan fingerprint radius used for the similarity column
+    :param n_bits: Morgan fingerprint length used for the similarity column
+    :param progress: Show progress bars, which is worth it on large training sets
+    :return: One row per test molecule, with columns ``test_smiles``, ``exact``,
+        ``same_connectivity``, ``same_scaffold``, ``nearest_similarity``, ``nearest_train_smiles``
+        and ``near_duplicate``. A test SMILES that will not parse yields False flags, a NaN
+        similarity and None for the nearest training molecule.
+    """
+    train_keys, train_scaffolds, train_mols = _leakage_keys(list(train_smiles), strip_salts, progress)
+    test_keys, test_scaffolds, test_mols = _leakage_keys(list(test_smiles), strip_salts, progress)
+
+    exact_lookup, connectivity_lookup, scaffold_set = {}, {}, set()
+    for smi, key, scaffold in zip(train_smiles, train_keys, train_scaffolds):
+        if key is None:
+            continue
+        exact_lookup.setdefault(key, smi)
+        connectivity_lookup.setdefault(key.split("-")[0], smi)
+        scaffold_set.add(scaffold)
+
+    generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
+    train_fp_list = [generator.GetFingerprint(mol) for mol in train_mols if mol is not None]
+    train_fp_smiles = [smi for smi, mol in zip(train_smiles, train_mols) if mol is not None]
+
+    rows = []
+    for smi, key, scaffold, mol in tqdm(list(zip(test_smiles, test_keys, test_scaffolds, test_mols)),
+                                        disable=not progress, desc="auditing test set"):
+        nearest_similarity, nearest_smiles = np.nan, None
+        if mol is not None and train_fp_list:
+            similarity = np.array(DataStructs.BulkTanimotoSimilarity(generator.GetFingerprint(mol),
+                                                                     train_fp_list))
+            best = int(similarity.argmax())
+            nearest_similarity, nearest_smiles = float(similarity[best]), train_fp_smiles[best]
+        rows.append({
+            "test_smiles": smi,
+            "exact": key is not None and key in exact_lookup,
+            "same_connectivity": key is not None and key.split("-")[0] in connectivity_lookup,
+            "same_scaffold": scaffold is not None and scaffold in scaffold_set,
+            "nearest_similarity": nearest_similarity,
+            "nearest_train_smiles": nearest_smiles,
+            "near_duplicate": bool(nearest_similarity >= similarity_cutoff)
+            if nearest_similarity == nearest_similarity else False,
+        })
+    audit_df = pd.DataFrame(rows)
+    # A column of strings with a gap in it becomes NaN on construction. Put the None back so
+    # the absence of a nearest neighbor reads the same whatever else the column holds.
+    nearest = audit_df["nearest_train_smiles"]
+    audit_df["nearest_train_smiles"] = nearest.astype(object).where(nearest.notna(), None)
+    return audit_df
+
+
+def summarize_split_leakage(audit_df: pd.DataFrame) -> pd.Series:
+    """
+    Reduce the output of :func:`audit_split_leakage` to the fraction of the test set each check hit.
+
+    :param audit_df: the DataFrame returned by :func:`audit_split_leakage`
+    :return: a Series indexed by check name, holding the fraction of test rows each one flagged,
+        plus ``n_test`` and the median nearest-neighbor similarity
+    """
+    checks = ["exact", "same_connectivity", "same_scaffold", "near_duplicate"]
+    summary = {name: float(audit_df[name].mean()) for name in checks}
+    summary["median_nearest_similarity"] = float(audit_df["nearest_similarity"].median())
+    summary["n_test"] = int(len(audit_df))
+    return pd.Series(summary)
+
+
 __all__ = [
     "GroupKFoldShuffle",
     "get_scaffold",
@@ -218,4 +343,6 @@ __all__ = [
     "get_bemis_murcko_clusters",
     "get_kmeans_clusters",
     "cross_validate",
+    "audit_split_leakage",
+    "summarize_split_leakage",
 ]

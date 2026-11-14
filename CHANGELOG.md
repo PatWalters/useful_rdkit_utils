@@ -2,6 +2,22 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- `audit_split_leakage()` and `summarize_split_leakage()` in split_utils. The module builds
+  splits four ways but had no way to check one it was handed, which is the case whenever a split
+  arrives with a public benchmark or from a collaborator. Each test molecule is checked against
+  the training set from strictest to loosest: identical InChIKey, identical first InChIKey block,
+  identical Bemis-Murcko scaffold, and nearest-neighbor Morgan Tanimoto with the training
+  molecule that produced it.
+  The first block carries constitution only, so it catches a training molecule that differs just
+  in stereochemistry or protonation state. Enantiomers, diastereomers, E/Z isomers and an acid
+  against its conjugate base all collapse onto it, and each of those is leakage that an InChIKey
+  comparison alone reports as a clean split. It does not see through every tautomer and does not
+  see through salts at all, so `strip_salts`, on by default, reduces each molecule to its largest
+  fragment first; without it a mesylate of a training compound reads as a new molecule.
+  The two strict checks are leakage outright, since a model can score on them without
+  generalizing. The scaffold and similarity columns are degrees of optimism rather than errors
+  and depend on what the split was built to measure, so they are reported and not judged.
 
 ## [2.0.1] - 2026-08-27
 ### Added
