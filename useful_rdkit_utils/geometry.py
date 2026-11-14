@@ -184,31 +184,90 @@ def get_conformer_energies(mol: Mol) -> List[float]:
     return [float(conf.GetProp("Energy")) for conf in mol.GetConformers()]
 
 
-def mcs_rmsd(mol_1: Mol, mol_2: Mol, id_1: int = 0, id_2: int = 0) -> Tuple[int, float]:
+def _kabsch_rmsd(crd_1: np.ndarray, crd_2: np.ndarray) -> float:
+    """RMSD between two equal-length coordinate sets after optimal superposition.
+
+    :param crd_1: (N, 3) reference coordinates
+    :param crd_2: (N, 3) probe coordinates, in the same atom order
+    :return: the RMSD after the probe has been rigidly superposed on the reference
+    """
+    ref = crd_1 - crd_1.mean(axis=0)
+    prb = crd_2 - crd_2.mean(axis=0)
+    v, _, wt = np.linalg.svd(prb.T @ ref)
+    # Flip the least significant axis when the naive rotation is a reflection,
+    # which would otherwise superpose a structure onto its mirror image.
+    if np.linalg.det(v @ wt) < 0.0:
+        v[:, -1] *= -1.0
+    prb = prb @ (v @ wt)
+    return float(np.sqrt(np.mean(np.sum((ref - prb) ** 2, axis=1))))
+
+
+def mcs_rmsd(mol_1: Mol, mol_2: Mol, id_1: int = 0, id_2: int = 0, align: bool = False,
+             timeout: Optional[int] = None, max_matches: int = 10000) -> Tuple[int, float]:
     """
     Calculate the RMSD (Root Mean Square Deviation) between the MCS (Maximum Common Substructure) of two molecules.
+
+    The RMSD is symmetry corrected: every way the MCS can be mapped onto each molecule is
+    enumerated and the smallest RMSD is returned, so two poses that differ only by a symmetric
+    relabeling, such as a flipped phenyl, a rotated methyl, or the two oxygens of a
+    carboxylate, are recognized as the same arrangement rather than reported as far apart.
+
+    By default the two conformers are compared in the frame they arrive in, which is what
+    comparing docked or co-folded poses against a crystal structure requires: the receptor
+    defines a common frame and a pose that sits in the wrong place should score as wrong.
+    Pass ``align=True`` to superpose the MCS atoms first, which is what comparing free
+    conformers requires, where absolute position carries no meaning.
+
+    When both molecules have the same graph, ``align=True`` reproduces
+    ``rdMolAlign.GetBestRMS(prb, ref, symmetrizeConjugatedTerminalGroups=False)``. RDKit's
+    conjugated-terminal-group symmetrization is not applied, and is not reachable from Python
+    outside ``GetBestRMS``, so the two oxygens of a carboxylic acid stay distinct here unless
+    the MCS itself makes them equivalent. Prefer ``GetBestRMS`` when the two molecules are the
+    same and that symmetrization is wanted; this function exists for the case ``GetBestRMS``
+    cannot handle, where the molecules differ and only a common substructure can be compared.
 
     :param mol_1: First RDKit molecule
     :param mol_2: Second RDKit molecule
     :param id_1: Conformer ID for the first molecule
     :param id_2: Conformer ID for the second molecule
+    :param align: If True, rigidly superpose the MCS atoms before measuring, discarding any
+                  difference in absolute position and orientation. If False (the default) the
+                  coordinates are compared as given.
+    :param timeout: Seconds to allow for the MCS search. ``None``, the default, lets it run to
+                    completion. On timeout RDKit returns the largest substructure it found so
+                    far, so a timeout yields a smaller MCS rather than an error.
+    :param max_matches: Cap on the number of MCS mappings enumerated per molecule. Highly
+                        symmetric structures admit a great many, and the RMSD is minimized over
+                        every pair, so the work grows as the product of the two counts. The cap
+                        bounds that; raising it makes the search exhaustive on such structures.
     :return: A tuple containing the number of MCS atoms and the RMSD value.
         If the molecules share no common substructure, the RMSD is float("inf").
     """
-    mcs_res = FindMCS([mol_1, mol_2])
+    mcs_res = FindMCS([mol_1, mol_2]) if timeout is None else FindMCS([mol_1, mol_2], timeout=timeout)
     num_mcs_atoms = mcs_res.numAtoms
+    if not num_mcs_atoms:
+        return 0, float("inf")
     pat = Chem.MolFromSmarts(mcs_res.smartsString)
-    match_1 = mol_1.GetSubstructMatches(pat)
-    match_2 = mol_2.GetSubstructMatches(pat)
+    if pat is None:
+        return num_mcs_atoms, float("inf")
+    # uniquify must be off. It keeps one representative per symmetry class, which collapses
+    # exactly the mappings this minimum is taken over and leaves a symmetry-blind comparison.
+    match_1 = mol_1.GetSubstructMatches(pat, uniquify=False, maxMatches=max_matches)
+    match_2 = mol_2.GetSubstructMatches(pat, uniquify=False, maxMatches=max_matches)
+    if not match_1 or not match_2:
+        return num_mcs_atoms, float("inf")
+    crd_1 = mol_1.GetConformer(id_1).GetPositions()
+    crd_2 = mol_2.GetConformer(id_2).GetPositions()
     min_rmsd = float("inf")
     for m1 in match_1:
+        ref = crd_1[list(m1)]
         for m2 in match_2:
-            crd_1 = mol_1.GetConformer(id_1).GetPositions()[list(m1)]
-            crd_2 = mol_2.GetConformer(id_2).GetPositions()[list(m2)]
-            diff = crd_1 - crd_2
-            squared_dist = np.sum(diff ** 2, axis=1)
-            msd = np.mean(squared_dist)
-            rmsd = np.sqrt(msd)
+            prb = crd_2[list(m2)]
+            if align:
+                rmsd = _kabsch_rmsd(ref, prb)
+            else:
+                diff = ref - prb
+                rmsd = float(np.sqrt(np.mean(np.sum(diff ** 2, axis=1))))
             min_rmsd = min(min_rmsd, rmsd)
     return num_mcs_atoms, float(min_rmsd)
 
